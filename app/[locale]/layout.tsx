@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { OrganizationJsonLd } from "@/components/seo/OrganizationJsonLd";
 import "../globals.css";
 
 const hind = Hind({
@@ -42,6 +43,7 @@ export default async function LocaleLayout(props: LayoutProps<"/[locale]">) {
   return (
     <html lang={locale} className={`${hind.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
+        <OrganizationJsonLd />
         <NextIntlClientProvider>
           <Header />
           <main className="flex flex-1 flex-col">{props.children}</main>

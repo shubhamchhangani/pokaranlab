@@ -12,7 +12,16 @@ export default async function AboutPage(props: PageProps<"/[locale]/about">) {
   ]);
 
   const name = currentLocale === "hi" ? siteInfo.name_hi : siteInfo.name_en;
+  const address = currentLocale === "hi" ? siteInfo.address_hi : siteInfo.address_en;
   const hours = currentLocale === "hi" ? siteInfo.hours_hi : siteInfo.hours_en;
+
+  const facts = [
+    { label: t("factsLocation"), value: address },
+    { label: t("factsHours"), value: hours },
+    { label: t("factsServices"), value: t("factsServicesValue") },
+    { label: t("factsCollection"), value: t("factsCollectionValue") },
+    { label: t("factsReports"), value: t("factsReportsValue") },
+  ];
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
@@ -20,20 +29,18 @@ export default async function AboutPage(props: PageProps<"/[locale]/about">) {
         {t("pageTitle")}
       </h1>
 
-      <div className="mt-6 flex flex-col gap-4 text-brand-ink/80">
-        <p>
-          {name} serves patients in and around Pokaran, Jaisalmer district, with blood
-          investigations, digital X-ray, and ECG.
-        </p>
-        <p>
-          {/* TODO: replace with real founding year / experience once provided */}
-          Years running, equipment on hand, and staff qualifications go here — written
-          as clean, extractable facts (see docs/system-design.md §11.6) rather than
-          marketing copy, since this content is meant to be read by both people and
-          AI search assistants.
-        </p>
-        <p>{hours}</p>
-      </div>
+      <p className="mt-4 text-brand-ink/80">{t("intro", { name })}</p>
+
+      <dl className="mt-8 divide-y divide-brand-ink/10 rounded-2xl border border-brand-ink/10 bg-white">
+        {facts.map((fact) => (
+          <div key={fact.label} className="grid gap-1 p-4 sm:grid-cols-3 sm:gap-4">
+            <dt className="text-sm font-medium text-brand-ink/60">{fact.label}</dt>
+            <dd className="text-sm text-brand-ink sm:col-span-2">{fact.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <p className="mt-6 text-xs text-brand-ink/50">{t("disclaimer")}</p>
     </div>
   );
 }

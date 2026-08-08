@@ -127,6 +127,47 @@ export function SiteSettingsForm({ siteInfo }: { siteInfo: SiteInfo }) {
         </FormField>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          label="Latitude (from the Google Maps pin — used in search-engine location data)"
+          htmlFor="geo_lat"
+        >
+          <input
+            id="geo_lat"
+            name="geo_lat"
+            type="number"
+            step="any"
+            defaultValue={siteInfo.geoLat ?? undefined}
+            className={inputClasses}
+          />
+        </FormField>
+        <FormField label="Longitude" htmlFor="geo_lng">
+          <input
+            id="geo_lng"
+            name="geo_lng"
+            type="number"
+            step="any"
+            defaultValue={siteInfo.geoLng ?? undefined}
+            className={inputClasses}
+          />
+        </FormField>
+      </div>
+
+      <FormField
+        label="Google review link (used by the “Request Review” button on Bookings)"
+        htmlFor="google_review_url"
+      >
+        <input
+          id="google_review_url"
+          name="google_review_url"
+          defaultValue={siteInfo.googleReviewUrl ?? ""}
+          className={inputClasses}
+        />
+        {state.fieldErrors?.google_review_url && (
+          <p className="text-xs text-red-600">{state.fieldErrors.google_review_url}</p>
+        )}
+      </FormField>
+
       {state.status === "error" && (
         <p className="text-sm text-red-600">{state.message}</p>
       )}

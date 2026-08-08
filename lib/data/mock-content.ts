@@ -121,12 +121,15 @@ export const mockSiteInfo = {
   address_en:
     "Near CHC / Govt. Hospital, Jodh Nagar, Pokaran, Dist. Jaisalmer, Rajasthan",
   address_hi: "सीएचसी / सरकारी अस्पताल के पास, जोध नगर, पोकरण, जिला जैसलमेर, राजस्थान",
-  phone: "+91-XXXXXXXXXX",
-  whatsapp: "91XXXXXXXXXX",
+  phone: "+91-8005518798",
+  whatsapp: "918005518798",
   email: "info@pokaranlab.com",
   hours_en: "Mon–Sat: 7:00 AM – 8:00 PM, Sun: 8:00 AM – 1:00 PM",
   hours_hi: "सोम–शनि: सुबह 7:00 – रात 8:00, रवि: सुबह 8:00 – दोपहर 1:00",
-  mapsEmbedUrl:
-    "https://www.google.com/maps?q=Pokaran+Jaisalmer+Rajasthan&output=embed",
-  mapsDirectionsUrl: "https://maps.google.com/?q=Pokaran+Jaisalmer+Rajasthan",
+  mapsEmbedUrl: "https://www.google.com/maps?q=26.9225286,71.9196006&z=17&output=embed",
+  mapsDirectionsUrl: "https://www.google.com/maps/dir/?api=1&destination=26.9225286,71.9196006",
+  geoLat: 26.9225286,
+  geoLng: 71.9196006,
+  googleReviewUrl:
+    "https://search.google.com/local/writereview?placeid=0x39472d7455f08b0b:0x4a6a22bd40b9f9e",
 };

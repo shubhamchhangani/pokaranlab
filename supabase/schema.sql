@@ -73,27 +73,44 @@ create table site_settings (
   hours_hi text not null,
   maps_embed_url text not null,
   maps_directions_url text not null,
+  -- Town-center approximation by default (see supabase/README.md) — refine to the exact
+  -- building pin once the Google Business Profile is set up (system-design.md §11). Used for
+  -- LocalBusiness JSON-LD `geo`, which system-design.md §6 calls for on every page.
+  geo_lat numeric(9, 6),
+  geo_lng numeric(9, 6),
+  -- Google review deep link (system-design.md §11.7 — review requests are one of the strongest
+  -- local-ranking signals). Used by the "Request Review" WhatsApp link in /admin/bookings.
+  google_review_url text,
   updated_at timestamptz not null default now()
 );
 
 -- Seed the one row so the public site has real content to read immediately after this script
 -- runs — the owner edits these values from /admin/settings, not by editing code or this file.
+-- phone/whatsapp/geo_lat/geo_lng are the real, confirmed values (phone + Google Maps pin,
+-- 2026-08-08 — see docs/decisions-log.md). hours/email are still placeholders pending
+-- confirmation.
 insert into site_settings (
   name_en, name_hi, short_name, address_en, address_hi, phone, whatsapp, email,
-  hours_en, hours_hi, maps_embed_url, maps_directions_url
+  hours_en, hours_hi, maps_embed_url, maps_directions_url, geo_lat, geo_lng, google_review_url
 ) values (
   'Pokaran Diagnostic & Dr X Ray Center',
   'पोकरण डायग्नोस्टिक एंड डॉ एक्स-रे सेंटर',
   'Pokaran Lab',
   'Near CHC / Govt. Hospital, Jodh Nagar, Pokaran, Dist. Jaisalmer, Rajasthan',
   'सीएचसी / सरकारी अस्पताल के पास, जोध नगर, पोकरण, जिला जैसलमेर, राजस्थान',
-  '+91-XXXXXXXXXX',
-  '91XXXXXXXXXX',
+  '+91-8005518798',
+  '918005518798',
   'info@pokaranlab.com',
   'Mon–Sat: 7:00 AM – 8:00 PM, Sun: 8:00 AM – 1:00 PM',
   'सोम–शनि: सुबह 7:00 – रात 8:00, रवि: सुबह 8:00 – दोपहर 1:00',
-  'https://www.google.com/maps?q=Pokaran+Jaisalmer+Rajasthan&output=embed',
-  'https://maps.google.com/?q=Pokaran+Jaisalmer+Rajasthan'
+  'https://www.google.com/maps?q=26.9225286,71.9196006&z=17&output=embed',
+  'https://www.google.com/maps/dir/?api=1&destination=26.9225286,71.9196006',
+  26.9225286, 71.9196006,
+  -- Built from the Google Maps CID (0x...:0x...) in the place link you shared — NOT verified by
+  -- actually clicking it (search.google.com's review flow needs a real browser). Test this
+  -- before relying on it; if it doesn't open a review box, get the real short link from Google
+  -- Business Profile → "Get more reviews" once the listing is claimed. See docs/todo.md.
+  'https://search.google.com/local/writereview?placeid=0x39472d7455f08b0b:0x4a6a22bd40b9f9e'
 );
 
 -- ─────────────────────────────────────────────────────────────────

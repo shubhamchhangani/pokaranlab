@@ -85,7 +85,26 @@
     "hoursLabel": "Hours"
   },
   "about": {
-    "pageTitle": "About Pokaran Lab"
+    "pageTitle": "About Pokaran Lab",
+    "intro": "{name} is a single-branch diagnostic lab serving Pokaran and the surrounding area in Jaisalmer district, offering blood investigations, digital X-ray, and ECG.",
+    "factsLocation": "Location",
+    "factsHours": "Hours",
+    "factsServices": "Services",
+    "factsServicesValue": "Blood investigation (pathology), Digital X-Ray, ECG",
+    "factsCollection": "Sample Collection",
+    "factsCollectionValue": "Walk-in at the lab, or home sample collection by appointment",
+    "factsReports": "Reports",
+    "factsReportsValue": "Digital reports, downloadable online with phone number + sample number",
+    "disclaimer": "Reports issued by this lab are not valid for medico-legal cases."
+  },
+  "health": {
+    "listTitle": "Health Concerns",
+    "listIntro": "General information on common health concerns and which test can help — always confirm with a doctor before acting on any result.",
+    "symptomsTitle": "Common Symptoms",
+    "whenToTestTitle": "When to Get Tested",
+    "recommendedTitle": "Recommended Test",
+    "disclaimer": "This page is general information, not a diagnosis. Always consult a doctor about your specific symptoms.",
+    "bookThis": "Book This Test"
   },
   "footer": {
     "tagline": "All type of blood investigation | Digital X-ray | E.C.G.",

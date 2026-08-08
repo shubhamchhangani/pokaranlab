@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAdminSession } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteInfo } from "@/lib/data/site";
 import { BOOKING_STATUSES } from "@/lib/data/booking-statuses";
 import { BookingStatusSelect } from "@/components/admin/BookingStatusSelect";
 
@@ -22,7 +23,7 @@ export default async function AdminBookingsPage(props: PageProps<"/admin/booking
     query = query.eq("status", status);
   }
 
-  const { data: bookings } = await query;
+  const [{ data: bookings }, siteInfo] = await Promise.all([query, getSiteInfo()]);
 
   return (
     <div>
@@ -78,10 +79,22 @@ export default async function AdminBookingsPage(props: PageProps<"/admin/booking
                 <td className="px-4 py-3 text-right">
                   <Link
                     href={`/admin/reports/new?booking=${booking.id}`}
-                    className="text-brand-teal hover:underline"
+                    className="mr-4 text-brand-teal hover:underline"
                   >
                     Create Report
                   </Link>
+                  {booking.status === "report_ready" && siteInfo.googleReviewUrl && (
+                    <a
+                      href={`https://wa.me/91${booking.guest_phone}?text=${encodeURIComponent(
+                        `Hi ${booking.guest_name}, your report from ${siteInfo.shortName} is ready! If you were happy with our service, a quick Google review helps a lot: ${siteInfo.googleReviewUrl}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#25D366] hover:underline"
+                    >
+                      Request Review
+                    </a>
+                  )}
                 </td>
               </tr>
             ))}

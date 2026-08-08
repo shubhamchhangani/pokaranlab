@@ -18,6 +18,9 @@ export type SiteInfo = {
   hours_hi: string;
   mapsEmbedUrl: string;
   mapsDirectionsUrl: string;
+  geoLat: number | null;
+  geoLng: number | null;
+  googleReviewUrl: string | null;
 };
 
 /**
@@ -47,5 +50,8 @@ export async function getSiteInfo(): Promise<SiteInfo> {
     hours_hi: data.hours_hi,
     mapsEmbedUrl: data.maps_embed_url,
     mapsDirectionsUrl: data.maps_directions_url,
+    geoLat: data.geo_lat ?? null,
+    geoLng: data.geo_lng ?? null,
+    googleReviewUrl: data.google_review_url ?? null,
   };
 }

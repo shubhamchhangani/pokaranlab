@@ -35,6 +35,9 @@ export async function Footer() {
           <Link href="/find-us" className="hover:text-brand-sandstone">
             {t("nav.findUs")}
           </Link>
+          <Link href="/health" className="hover:text-brand-sandstone">
+            {t("health.listTitle")}
+          </Link>
         </nav>
       </div>
 

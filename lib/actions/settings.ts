@@ -18,6 +18,9 @@ const settingsSchema = z.object({
   hours_hi: z.string().min(1),
   maps_embed_url: z.string().url(),
   maps_directions_url: z.string().url(),
+  geo_lat: z.coerce.number().min(-90).max(90).optional(),
+  geo_lng: z.coerce.number().min(-180).max(180).optional(),
+  google_review_url: z.union([z.literal(""), z.string().url()]).optional(),
 });
 
 export type SettingsFormState = {

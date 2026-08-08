@@ -27,22 +27,10 @@ export default async function FindUsPage(props: PageProps<"/[locale]/find-us">) 
   const address = currentLocale === "hi" ? siteInfo.address_hi : siteInfo.address_en;
   const hours = currentLocale === "hi" ? siteInfo.hours_hi : siteInfo.hours_en;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "MedicalOrganization",
-    name: siteInfo.name_en,
-    address: siteInfo.address_en,
-    telephone: siteInfo.phone,
-    openingHours: siteInfo.hours_en,
-  };
-
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-
+      {/* MedicalOrganization/LocalBusiness JSON-LD is rendered site-wide in
+          app/[locale]/layout.tsx — see components/seo/OrganizationJsonLd.tsx */}
       <h1 className="font-display text-3xl font-semibold text-brand-indigo">
         {t("pageTitle")}
       </h1>
