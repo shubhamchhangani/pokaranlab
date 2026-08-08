@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { buttonClasses } from "@/components/ui/Button";
@@ -61,6 +62,16 @@ export default async function TestDetailPage(props: PageProps<"/[locale]/tests/[
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {test.primary_image_url && (
+        <Image
+          src={test.primary_image_url}
+          alt=""
+          width={800}
+          height={400}
+          className="mb-6 h-56 w-full rounded-2xl object-cover"
+        />
+      )}
 
       <span className="text-xs font-medium uppercase tracking-wide text-brand-teal">
         {test.category_en}

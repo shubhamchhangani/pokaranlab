@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Card } from "@/components/ui/Card";
+import { CardImage } from "@/components/ui/CardImage";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { getTests } from "@/lib/data/tests";
@@ -29,6 +30,7 @@ export async function PopularTests() {
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {popular.map((test) => (
             <Card key={test.slug} className="flex flex-col">
+              {test.primary_image_url && <CardImage src={test.primary_image_url} />}
               <h3 className="font-semibold text-brand-indigo">
                 {locale === "hi" ? test.name_hi : test.name_en}
               </h3>

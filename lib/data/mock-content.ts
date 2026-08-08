@@ -15,6 +15,7 @@ export type MockTest = {
   home_collection_available: boolean;
   description_en: string;
   description_hi: string;
+  primary_image_url?: string | null;
 };
 
 export const mockTests: MockTest[] = [
@@ -92,6 +93,7 @@ export type MockPackage = {
   description_en: string;
   description_hi: string;
   includedTestSlugs: string[];
+  primary_image_url?: string | null;
 };
 
 export const mockPackages: MockPackage[] = [

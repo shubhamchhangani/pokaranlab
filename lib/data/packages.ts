@@ -12,20 +12,26 @@ export type PackageListItem = {
   price: number;
   description_en: string;
   description_hi: string;
+  primary_image_url: string | null;
 };
 
 export type PackageDetail = PackageListItem & {
   includedTests: { slug: string; name_en: string; name_hi: string }[];
 };
 
+const normalizedMockPackages: PackageListItem[] = mockPackages.map((p) => ({
+  ...p,
+  primary_image_url: p.primary_image_url ?? null,
+}));
+
 /** Returns mock data until NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY are set — see .env.example. */
 export async function getPackages(): Promise<PackageListItem[]> {
-  if (!hasSupabase) return mockPackages;
+  if (!hasSupabase) return normalizedMockPackages;
 
   const supabase = createClient();
   const { data, error } = await supabase.from("packages").select("*").order("name_en");
 
-  if (error || !data) return mockPackages;
+  if (error || !data) return normalizedMockPackages;
 
   return data.map((p) => ({
     slug: p.slug,
@@ -34,6 +40,7 @@ export async function getPackages(): Promise<PackageListItem[]> {
     price: p.price,
     description_en: p.description_en ?? "",
     description_hi: p.description_hi ?? "",
+    primary_image_url: p.primary_image_url ?? null,
   }));
 }
 
@@ -41,7 +48,7 @@ export async function getPackageBySlug(slug: string): Promise<PackageDetail | nu
   if (!hasSupabase) {
     const pkg = mockPackages.find((p) => p.slug === slug);
     if (!pkg) return null;
-    return { ...pkg, includedTests: [] };
+    return { ...pkg, primary_image_url: pkg.primary_image_url ?? null, includedTests: [] };
   }
 
   const supabase = createClient();
@@ -62,6 +69,7 @@ export async function getPackageBySlug(slug: string): Promise<PackageDetail | nu
     price: data.price,
     description_en: data.description_en ?? "",
     description_hi: data.description_hi ?? "",
+    primary_image_url: data.primary_image_url ?? null,
     includedTests: ((data.package_tests ?? []) as IncludedTestRow[])
       .map((pt) => pt.tests)
       .filter((t): t is { slug: string; name_en: string; name_hi: string } => t !== null),

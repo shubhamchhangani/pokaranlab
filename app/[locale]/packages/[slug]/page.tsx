@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { buttonClasses } from "@/components/ui/Button";
@@ -61,6 +62,16 @@ export default async function PackageDetailPage(
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {pkg.primary_image_url && (
+        <Image
+          src={pkg.primary_image_url}
+          alt=""
+          width={800}
+          height={400}
+          className="mb-6 h-56 w-full rounded-2xl object-cover"
+        />
+      )}
 
       <h1 className="font-display text-3xl font-semibold text-brand-indigo">{name}</h1>
       <p className="mt-4 text-brand-ink/80">{description}</p>

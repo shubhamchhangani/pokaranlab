@@ -17,6 +17,7 @@ export type PackageFormInitialValues = {
   price: number;
   custom_fields: Record<string, unknown> | null;
   includedTestIds: string[];
+  primary_image_url: string | null;
 };
 
 export function PackageForm({
@@ -106,6 +107,30 @@ export function PackageForm({
           )}
         </FormField>
       </div>
+
+      <FormField label="Primary image" htmlFor="primary_image">
+        {initialValues?.primary_image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={initialValues.primary_image_url}
+            alt=""
+            className="mb-2 h-24 w-24 rounded-lg border border-brand-ink/10 object-cover"
+          />
+        )}
+        <input
+          id="primary_image"
+          name="primary_image"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className={`${inputClasses} file:mr-3 file:rounded-md file:border-0 file:bg-brand-indigo file:px-3 file:py-1.5 file:text-xs file:text-brand-paper`}
+        />
+        {initialValues?.primary_image_url && (
+          <label className="mt-1 flex items-center gap-2 text-xs text-brand-ink/60">
+            <input type="checkbox" name="remove_image" className="h-3 w-3" />
+            Remove current image
+          </label>
+        )}
+      </FormField>
 
       <FormField label="Included tests" htmlFor="includedTestIds">
         <div className="grid max-h-56 gap-1 overflow-y-auto rounded-lg border border-brand-ink/15 bg-white p-3 sm:grid-cols-2">

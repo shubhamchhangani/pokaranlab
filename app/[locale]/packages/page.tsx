@@ -1,6 +1,7 @@
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Card } from "@/components/ui/Card";
+import { CardImage } from "@/components/ui/CardImage";
 import { buttonClasses } from "@/components/ui/Button";
 import { getPackages } from "@/lib/data/packages";
 
@@ -23,6 +24,7 @@ export default async function PackagesPage(props: PageProps<"/[locale]/packages"
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {packages.map((pkg) => (
           <Card key={pkg.slug} className="flex flex-col">
+            {pkg.primary_image_url && <CardImage src={pkg.primary_image_url} />}
             <h2 className="font-semibold text-brand-indigo">
               {currentLocale === "hi" ? pkg.name_hi : pkg.name_en}
             </h2>

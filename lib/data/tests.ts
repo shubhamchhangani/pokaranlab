@@ -35,6 +35,7 @@ export async function getTests(): Promise<TestListItem[]> {
     home_collection_available: t.home_collection_available,
     description_en: t.description_en ?? "",
     description_hi: t.description_hi ?? "",
+    primary_image_url: t.primary_image_url ?? null,
   }));
 }
 

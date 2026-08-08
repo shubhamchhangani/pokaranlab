@@ -21,6 +21,7 @@ export type TestFormInitialValues = {
   turnaround_time: string;
   home_collection_available: boolean;
   custom_fields: Record<string, unknown> | null;
+  primary_image_url: string | null;
 };
 
 export function TestForm({
@@ -91,6 +92,30 @@ export function TestForm({
         />
         {state.fieldErrors?.slug && (
           <p className="text-xs text-red-600">{state.fieldErrors.slug}</p>
+        )}
+      </FormField>
+
+      <FormField label="Primary image" htmlFor="primary_image">
+        {initialValues?.primary_image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={initialValues.primary_image_url}
+            alt=""
+            className="mb-2 h-24 w-24 rounded-lg border border-brand-ink/10 object-cover"
+          />
+        )}
+        <input
+          id="primary_image"
+          name="primary_image"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className={`${inputClasses} file:mr-3 file:rounded-md file:border-0 file:bg-brand-indigo file:px-3 file:py-1.5 file:text-xs file:text-brand-paper`}
+        />
+        {initialValues?.primary_image_url && (
+          <label className="mt-1 flex items-center gap-2 text-xs text-brand-ink/60">
+            <input type="checkbox" name="remove_image" className="h-3 w-3" />
+            Remove current image
+          </label>
         )}
       </FormField>
 

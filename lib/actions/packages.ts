@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
+import { uploadPrimaryImage } from "@/lib/actions/upload-image";
 
 const packageSchema = z.object({
   id: z.string().optional(),
@@ -47,6 +48,9 @@ export async function upsertPackage(
     return { status: "error", message: "You must be signed in as staff to do this." };
   }
 
+  const imageFile = formData.get("primary_image");
+  const removeImage = formData.get("remove_image") === "on";
+
   const raw = {
     ...Object.fromEntries(formData),
     includedTestIds: formData.getAll("includedTestIds"),
@@ -61,8 +65,14 @@ export async function upsertPackage(
     return { status: "error", fieldErrors, message: "Please check the highlighted fields." };
   }
 
-  const { id, includedTestIds, ...row } = parsed.data;
+  const { id, includedTestIds, ...values } = parsed.data;
   const supabase = await createClient();
+
+  const uploadedUrl = await uploadPrimaryImage(supabase, imageFile, "packages");
+  const row = {
+    ...values,
+    ...(uploadedUrl ? { primary_image_url: uploadedUrl } : removeImage ? { primary_image_url: null } : {}),
+  };
 
   let packageId = id;
 

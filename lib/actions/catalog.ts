@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
+import { uploadPrimaryImage } from "@/lib/actions/upload-image";
 
 const testSchema = z.object({
   id: z.string().optional(),
@@ -52,7 +53,14 @@ export async function upsertTest(
     return { status: "error", message: "You must be signed in as staff to do this." };
   }
 
-  const parsed = testSchema.safeParse(Object.fromEntries(formData));
+  const imageFile = formData.get("primary_image");
+  const removeImage = formData.get("remove_image") === "on";
+  const fields = new FormData();
+  for (const [key, value] of formData.entries()) {
+    if (key !== "primary_image" && key !== "remove_image") fields.append(key, value);
+  }
+
+  const parsed = testSchema.safeParse(Object.fromEntries(fields));
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
@@ -62,9 +70,15 @@ export async function upsertTest(
   }
 
   const { id, ...values } = parsed.data;
-  const row = { ...values, category_id: values.category_id || null };
-
   const supabase = await createClient();
+
+  const uploadedUrl = await uploadPrimaryImage(supabase, imageFile, "tests");
+  const row = {
+    ...values,
+    category_id: values.category_id || null,
+    ...(uploadedUrl ? { primary_image_url: uploadedUrl } : removeImage ? { primary_image_url: null } : {}),
+  };
+
   const { error } = id
     ? await supabase.from("tests").update(row).eq("id", id)
     : await supabase.from("tests").insert(row);

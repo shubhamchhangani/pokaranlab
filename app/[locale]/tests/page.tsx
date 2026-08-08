@@ -1,6 +1,7 @@
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Card } from "@/components/ui/Card";
+import { CardImage } from "@/components/ui/CardImage";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { getTests } from "@/lib/data/tests";
@@ -24,6 +25,7 @@ export default async function TestsPage(props: PageProps<"/[locale]/tests">) {
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {tests.map((test) => (
           <Card key={test.slug} className="flex flex-col">
+            {test.primary_image_url && <CardImage src={test.primary_image_url} />}
             <span className="text-xs font-medium uppercase tracking-wide text-brand-teal">
               {test.category_en}
             </span>
