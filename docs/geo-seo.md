@@ -84,5 +84,28 @@ reviews" tool (available once the listing is claimed) generates a guaranteed-wor
   reading it can extract clean facts."
 - Sitemap includes health-concern pages now, alongside tests/packages.
 
-**Not done:** submitting the sitemap to Google Search Console (needs the real domain live and
-the owner's Google account — see [todo.md](./todo.md) Phase 0/3).
+## Google Search Console (done, 2026-08-09 — interim property)
+
+Property: `https://pokaranlab.vercel.app` (**not** `www.pokaranlab.vercel.app` — that subdomain
+doesn't resolve to anything; Vercel's wildcard `*.vercel.app` cert makes it *look* reachable but
+no project is bound to that exact host. Custom domains get an automatic `www.` variant, `.vercel.app`
+project subdomains don't — see [decisions-log.md](./decisions-log.md)).
+
+- Verified via HTML file (`public/googleb230d3a3eb16b55e.html`).
+- Sitemap (`sitemap.xml`) submitted.
+- Homepage indexing requested manually for both `/en` and `/hi` via URL Inspection, to jump-start
+  crawling ahead of Google's own discovery schedule.
+- Along the way, found and fixed a real bug: `NEXT_PUBLIC_SITE_URL` was never set in Vercel, so
+  `robots.txt`'s sitemap reference was pointing at `https://pokaranlab.com` — a domain that
+  doesn't exist yet (the code fallback when the env var is absent). Now set to
+  `https://pokaranlab.vercel.app`.
+
+**When `pokaranlab.com` is registered and live:**
+1. Add it as the Vercel project's primary domain (Vercel auto-redirects the `.vercel.app` URL to
+   it once set as primary).
+2. Update `NEXT_PUBLIC_SITE_URL` to `https://pokaranlab.com` in Vercel.
+3. Add `https://pokaranlab.com` as a *new* Search Console property, verify, submit its sitemap.
+4. On the old `pokaranlab.vercel.app` property, use **Settings → Change of Address** to point
+   Google at the new one — this is what makes the migration clean instead of starting over, and
+   there's minimal signal to lose either way since this is all happening in the site's first
+   days.

@@ -26,8 +26,8 @@ below.
 | 1 | Dashboard | Built — `app/admin/page.tsx`. Two live counts (today's bookings, pending reports) via Supabase `count`. No revenue view. |
 | 2 | Bookings | Built — `app/admin/bookings/page.tsx`. Status filter, per-row status update, "Create Report" link per booking. No date filter yet. |
 | 3 | Report entry | **Built.** `app/admin/reports/{new,[id]}`, `lib/actions/reports-admin.ts`, `components/admin/ReportForm.tsx`. Sample no./patient details/optional booking link, dynamic results table (catalog auto-fill + auto High/Low flag, or free-form custom rows), draft/final status, PDF generated and stored on every save with results. No staff-role restriction (any staff can finalize a report). |
-| 4 | Catalog management | **Mostly built.** `tests` and `packages` both have full create/edit/delete + raw-JSON `custom_fields` editors + single primary-image upload + (`tests` only) a `normal_range_template` editor. `test_categories` has add/delete but no rename. **Still missing:** multi-photo galleries/reordering — the `media` table is only used for the landing hero (see below), not per-test/package. |
-| 5 | Site content | **Two screens, split by content type.** `/admin/settings` edits the `site_settings` singleton (contact/hours/map links). `/admin/site-content` (new) manages the homepage hero carousel (`media`, `entity_type='landing'`) — upload, caption EN/HI, sort order, delete. **Still missing:** gallery photos, video links (system-design.md §6.1 mentions both; only the hero carousel exists). |
+| 4 | Catalog management | **Built.** `tests` and `packages` both have full create/edit/delete + raw-JSON `custom_fields` editors + primary-image upload + multi-photo galleries (`components/admin/MediaGalleryForm.tsx`, same `media` table as the landing hero) + (`tests` only) a `normal_range_template` editor. `test_categories` has full create/edit/delete/rename + a default fallback photo. **Still missing:** photo reordering within a gallery (order is set by typing a number, no drag-and-drop), video links. |
+| 5 | Site content | **Two screens, split by content type.** `/admin/settings` edits the `site_settings` singleton (contact/hours/map links). `/admin/site-content` manages the homepage hero carousel (`media`, `entity_type='landing'`, via the same generalized `MediaGalleryForm`). **Still missing:** video links (system-design.md §6.1 mentions these; no UI for them). |
 | 6 | Staff management | **Not built.** |
 
 ## Notes for whoever builds the remaining screens
@@ -35,12 +35,14 @@ below.
 - Follow the "mobile-first, minimal taps" principle from system-design.md §7 — staff use this
   between patients on a phone, not at a desk.
 - The `tests` CRUD pattern (`lib/actions/catalog.ts` + `app/admin/catalog/{new,[id]}`) has now
-  been reused three times — `packages`, `test_categories`, and the landing media list. Same
-  shape each time: a `zod`-validated Server Action that checks `getAdminSession()` first, a form
-  component under `components/admin/`, `revalidatePath` on both the admin list and `/` after
-  writes. Follow it again for staff management. For a many-to-many join (`package_tests`), the
-  simplest correct approach at this catalog size is delete-all-then-insert-selected on every
-  save, not diffing — see `upsertPackage`.
+  been reused for `packages`, `test_categories`, and (via the generalized
+  `lib/actions/media.ts`) photo galleries for tests/packages/landing all sharing one `upsertMedia`/
+  `deleteMedia` pair keyed by `entity_type`. Same shape each time: a `zod`-validated Server Action
+  that checks `getAdminSession()` first, a form component under `components/admin/`,
+  `revalidatePath` on both the admin list and `/` after writes. Follow it again for staff
+  management. For a many-to-many join (`package_tests`), the simplest correct approach at this
+  catalog size is delete-all-then-insert-selected on every save, not diffing — see
+  `upsertPackage`.
 - **Don't hardcode business content in `.ts` files again.** `lib/data/mock-content.ts` exists
   *only* as the pre-Supabase fallback (see [decisions-log.md](./decisions-log.md)) — anything the
   owner should be able to change is a DB row with an admin form, not a constant.
@@ -52,12 +54,11 @@ below.
   (pre-emptively fixed before shipping) the report lookup flow — see
   [database-schema.md](./database-schema.md).
 - `updateSiteSettings`, `upsertTest`/`deleteTest`, `upsertPackage`/`deletePackage`, and
-  `upsertReport` all call `revalidatePath` after writing, but the locale pages that read this
-  data are statically generated (`generateStaticParams` in `app/[locale]/layout.tsx`,
-  `tests/[slug]/page.tsx`, `packages/[slug]/page.tsx`) — **still not specifically confirmed**
-  that a settings/catalog edit shows up on the public site without a full redeploy. If
-  `revalidatePath` alone doesn't do it, these routes may need `export const revalidate =
-  <seconds>` or on-demand tag-based revalidation instead. See [todo.md](./todo.md).
+  `upsertReport` all call `revalidatePath` after writing, and this is now **confirmed working**
+  against production — tested empirically (a temporary route updated a live field and called
+  `revalidatePath("/", "layout")`; the public static page reflected it within ~2 seconds, no
+  redeploy needed). No further action needed here; see `docs/decisions-log.md` for how it was
+  verified.
 - Reuse `components/ui/*` (Button, Card, FormField) rather than one-off admin styling — that's
   the whole point of the shared design system (system-design.md §6).
 - File uploads (primary image, landing media) go through `lib/actions/upload-image.ts`, a plain

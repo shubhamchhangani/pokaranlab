@@ -4,6 +4,35 @@ Reverse-chronological log of what's actually built, so a new session doesn't hav
 every file to know the current state. When you finish something from [todo.md](./todo.md), move
 its line here with the date.
 
+## 2026-08-09 — Google Search Console live, photo galleries, category images
+
+**Search Console:** verified `https://pokaranlab.vercel.app` as a property, submitted the
+sitemap, requested indexing for both locale homepages. Two real bugs found and fixed along the
+way: the user's initial verification attempt targeted `www.pokaranlab.vercel.app`, which doesn't
+resolve to anything (no `www.` variant exists for `.vercel.app` project subdomains — corrected
+to the real host); and `NEXT_PUBLIC_SITE_URL` had never been set in Vercel, so `robots.txt`'s
+sitemap reference silently pointed at `https://pokaranlab.com` (the code fallback), a domain
+that doesn't exist yet. Both fixed; full domain-migration plan for when `pokaranlab.com` is
+registered is in `docs/geo-seo.md`.
+
+**Multi-photo galleries + category images** (the three remaining gaps from the previous
+session's Phase 1 review):
+- `lib/actions/media.ts` generalized from landing-only to `entity_type` test/package/landing,
+  backing one reusable `components/admin/MediaGalleryForm.tsx` used on the hero carousel and new
+  gallery sections on every test/package's admin edit page. Public detail pages render the
+  gallery via `components/ui/PhotoGallery.tsx`.
+- `test_categories` gained full edit (previously add/delete only) plus a default fallback photo
+  — a test with no `primary_image_url` of its own now shows its category's default image instead
+  of nothing.
+- `revalidatePath` timing was verified empirically against production, not assumed: a temporary
+  debug route updated a live field and called `revalidatePath`, confirmed the public static page
+  reflected it within ~2 seconds, then was deleted. Resolves the caveat that had been open since
+  Phase 1.
+
+All new writes (gallery upload/insert, public gallery read, category image update) verified
+against live Supabase as the real staff session before deploying, same discipline as every prior
+round. Deployed and smoke-tested live at https://pokaranlab.vercel.app.
+
 ## 2026-08-08 — Phase 3 (SEO) + Phase 4 (GEO/local authority)
 
 Started with web research (Google/Justdial) for the lab's real public data — found a real,

@@ -51,18 +51,27 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       create-and-delete, since categories rarely change.
 - [x] Admin catalog: primary image upload for `tests`/`packages` (`lib/actions/upload-image.ts`,
       to the `public-media` bucket), rendered on catalog grids/detail pages via
-      `components/ui/CardImage.tsx`. **Only a single "primary" image** — the full `media` table
-      (multiple photos per test, reorder, landing-page gallery/hero) is still schema-only, no UI.
+      `components/ui/CardImage.tsx`.
 - [x] Admin site settings screen (`/admin/settings`) editing the `site_settings` singleton row
 - [x] Landing page hero carousel from system-design.md §6.1 — `/admin/site-content` manages
       `media` rows (`entity_type='landing'`), `components/sections/HeroCarousel.tsx` renders
-      them (auto-advancing, captioned, falls back to text-only hero when empty). **Gallery
-      photos and video links are still unbuilt** — only the hero carousel exists. Category-level
-      default images (`test_categories.default_image_url`, system-design.md §5.1) are also still
-      unbuilt; a test with no `primary_image_url` renders with no image, no fallback chain.
-- [ ] Verify `revalidatePath` actually busts the cache for statically-generated locale pages
-      after a settings/catalog edit — not yet specifically confirmed even though real Supabase
-      is live; see the caveat in `docs/admin-design.md`
+      them (auto-advancing, captioned, falls back to text-only hero when empty).
+- [x] Multi-photo galleries per test/package — `media` table now used for `entity_type='test'`/
+      `'package'` too (previously landing-only), managed from a gallery section on each
+      test/package's admin edit page (`components/admin/MediaGalleryForm.tsx`, generalized from
+      the landing-only version), rendered on the public detail pages via
+      `components/ui/PhotoGallery.tsx`. Separate from `primary_image_url` — see
+      `docs/decisions-log.md`. **Still unbuilt:** video links (system-design.md §6.1 mentions
+      these too, no UI for them).
+- [x] Category-level default fallback images (`test_categories.default_image_url`,
+      system-design.md §5.1) — a test with no `primary_image_url` of its own now falls back to
+      its category's default photo (`lib/data/tests.ts`). Also added category rename + image
+      upload via a new `/admin/categories/[id]` edit page — categories previously had no edit at
+      all, only add/delete.
+- [x] Verified `revalidatePath` busts the cache for statically-generated locale pages — tested
+      empirically against production (a temporary debug route updated a live test's field and
+      called `revalidatePath`, and the public page reflected it within ~2 seconds). No fix
+      needed; the caveat in `docs/admin-design.md` is resolved.
 - [x] Admin bookings: status update via `components/admin/BookingStatusSelect.tsx` +
       `lib/actions/admin-bookings.ts`, plus a status filter on `/admin/bookings`
 - [x] Wire booking Server Action to resolve selected items (tests *and* packages, unified as
@@ -123,8 +132,18 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       includes `geo` coordinates. Test/package detail pages keep their own `MedicalTest` JSON-LD
       (with a `provider` back-reference) on top of this.
 - [x] About page rewritten as a clean facts list, no more placeholder copy.
-- [ ] Submit sitemap to Google Search Console once the real domain is live — needs the owner's
-      Google account, can't be done from this codebase.
+- [x] Sitemap submitted to Google Search Console (2026-08-09) — property is
+      `https://pokaranlab.vercel.app` (not `www.` — that subdomain doesn't resolve, see
+      `docs/decisions-log.md`), verified via HTML file
+      (`public/googleb230d3a3eb16b55e.html`), sitemap submitted, homepage indexing requested for
+      both locales. **Re-do this** once `pokaranlab.com` is registered — new property, new
+      sitemap submission, plus the old property's Change of Address tool pointed at the new one
+      (see `docs/geo-seo.md` for the full domain-migration plan).
+- [x] Fixed a real bug found while setting up Search Console: `NEXT_PUBLIC_SITE_URL` was never
+      set in Vercel, so `robots.txt`/`sitemap.xml` fell back to the code default
+      `https://pokaranlab.com` — a domain that doesn't exist yet, so the sitemap reference in
+      `robots.txt` pointed nowhere. Now set to `https://pokaranlab.vercel.app` in Vercel; must be
+      switched to `https://pokaranlab.com` once that domain is live (see `docs/geo-seo.md`).
 
 ## Phase 4 — GEO / local authority
 

@@ -4,6 +4,40 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-09 — `revalidatePath` was verified with a temporary, throwaway debug route, not
+  guesswork.** The open question ("does the public site actually update after an admin edit,
+  and how fast") couldn't be answered by code review alone, and driving a real browser through
+  the admin UI wasn't available. Added a one-off `app/api/debug-revalidate/route.ts` that
+  updated a live field via the service-role client and called `revalidatePath("/", "layout")`,
+  hit it with `curl` against production, confirmed the public page updated within ~2 seconds,
+  reverted the test data, deleted the route, and redeployed. Verifying against the *actual
+  deployed environment* mattered here — Vercel's CDN/Full Route Cache behavior isn't fully
+  reproducible in local dev.
+- **2026-08-09 — `www.pokaranlab.vercel.app` doesn't resolve; the real URL has no "www."** —
+  found while setting up Google Search Console (the user had created a verification property for
+  the www-prefixed host). Vercel's `*.vercel.app` wildcard TLS cert accepts any subdomain at the
+  network level, so it looks reachable, but no project is actually bound to that exact hostname
+  — the connection completes and then returns nothing. Custom domains support both apex and
+  `www.`; `.vercel.app` project subdomains don't get an automatic `www.` variant. Worth
+  remembering for the eventual `pokaranlab.com` migration too — don't assume `www.` "just works"
+  without explicitly configuring it.
+- **2026-08-09 — `NEXT_PUBLIC_SITE_URL` was never actually set in Vercel.** `robots.txt`/
+  `sitemap.xml` (`app/robots.ts`, `app/sitemap.ts`) both fall back to the hardcoded
+  `https://pokaranlab.com` when the env var is absent — which is exactly what was happening in
+  production, so the sitemap reference in `robots.txt` pointed at a domain that doesn't exist
+  yet. Found while setting up Search Console (a real crawler would have hit the same dead end).
+  Fixed by setting `NEXT_PUBLIC_SITE_URL=https://pokaranlab.vercel.app` in Vercel; needs updating
+  again once `pokaranlab.com` is registered and live — see `docs/geo-seo.md`.
+- **2026-08-09 — Per-test/package photo galleries (`media` table) and the single
+  `primary_image_url` are two deliberately separate mechanisms, not one merged into the other.**
+  `primary_image_url` is the fast path for catalog grid thumbnails (no join needed — see
+  system-design.md §5.1's original reasoning); `media` is for "however many extra photos this
+  specific item has." Merging them (e.g., always taking the first gallery photo as primary)
+  would couple two things admins might reasonably want to change independently — e.g., swap
+  which photo is the "main" one without touching the gallery order. `lib/actions/media.ts` was
+  generalized from its original landing-only form to serve both the hero carousel and these
+  galleries through one `upsertMedia`/`deleteMedia` pair, keyed by `entity_type`.
+
 - **2026-08-08 — Health-concern pages (`lib/data/health-concerns.ts`) are code-maintained, not a
   DB table with an admin form.** This looks like it contradicts the "everything admin-editable"
   rule established earlier the same day (see the `site_settings` entry below) — the distinction:
