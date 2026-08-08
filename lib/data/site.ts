@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/public";
 import { mockSiteInfo } from "@/lib/data/mock-content";
 
 const hasSupabase = Boolean(
@@ -22,12 +22,14 @@ export type SiteInfo = {
 
 /**
  * Reads the single `site_settings` row — owner-editable from /admin/settings. Falls back to
- * mock data only when Supabase isn't configured yet (see lib/data/mock-content.ts).
+ * mock data only when Supabase isn't configured yet (see lib/data/mock-content.ts). Uses the
+ * cookie-free public client (see lib/data/tests.ts for why) since this is rendered into every
+ * statically-generated locale page via Header/Footer.
  */
 export async function getSiteInfo(): Promise<SiteInfo> {
   if (!hasSupabase) return mockSiteInfo;
 
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data, error } = await supabase.from("site_settings").select("*").single();
 
   if (error || !data) return mockSiteInfo;

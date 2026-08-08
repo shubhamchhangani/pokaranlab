@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/public";
 import { mockTests, type MockTest } from "@/lib/data/mock-content";
 
 const hasSupabase = Boolean(
@@ -7,11 +7,16 @@ const hasSupabase = Boolean(
 
 export type TestListItem = MockTest;
 
-/** Returns mock data until NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY are set — see .env.example. */
+/**
+ * Returns mock data until NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY are set — see .env.example.
+ * Uses the cookie-free public client (not lib/supabase/server.ts) because this also runs from
+ * `generateStaticParams` at build time, where `next/headers` isn't available — fine here since
+ * `tests` is public-read under RLS regardless of session.
+ */
 export async function getTests(): Promise<TestListItem[]> {
   if (!hasSupabase) return mockTests;
 
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data, error } = await supabase
     .from("tests")
     .select("*, test_categories(name_en)")
