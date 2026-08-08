@@ -51,11 +51,12 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       `components/ui/CardImage.tsx`. **Only a single "primary" image** — the full `media` table
       (multiple photos per test, reorder, landing-page gallery/hero) is still schema-only, no UI.
 - [x] Admin site settings screen (`/admin/settings`) editing the `site_settings` singleton row
-- [ ] Landing page hero carousel / gallery photos / video links from system-design.md §6.1 —
-      the `media` table (`entity_type='landing'`) exists, no admin UI or public rendering yet.
-      Category-level default images (`test_categories.default_image_url`, for tests with no
-      photo of their own — system-design.md §5.1) are also unbuilt; a test with no
-      `primary_image_url` just renders with no image today, no fallback chain.
+- [x] Landing page hero carousel from system-design.md §6.1 — `/admin/site-content` manages
+      `media` rows (`entity_type='landing'`), `components/sections/HeroCarousel.tsx` renders
+      them (auto-advancing, captioned, falls back to text-only hero when empty). **Gallery
+      photos and video links are still unbuilt** — only the hero carousel exists. Category-level
+      default images (`test_categories.default_image_url`, system-design.md §5.1) are also still
+      unbuilt; a test with no `primary_image_url` renders with no image, no fallback chain.
 - [ ] Verify `revalidatePath` actually busts the cache for statically-generated locale pages
       after a settings/catalog edit — not yet specifically confirmed even though real Supabase
       is live; see the caveat in `docs/admin-design.md`
@@ -65,29 +66,47 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       `test:<slug>`/`package:<slug>`) to real rows and insert `booking_items` with a real
       computed `total_amount` (was hardcoded to 0, and packages couldn't be booked at all before
       this — the "Book This Test" link on a package page was a dead end).
-- [ ] Make booking creation atomic — `createBooking` currently inserts `bookings` then
-      `booking_items` as two separate calls; if the second fails, the booking is saved without
-      its line items (logged as a known gap in the code, not silently wrong, but not ideal).
-      PostgREST doesn't support multi-statement transactions from the client, so this needs a
-      `security definer` RPC function that does both inserts in one call.
-- [ ] Wire the "Ref. By doctor" field to actually persist — currently a guest booking can only
-      *link* an existing `doctors` row by exact-ish name match (`ilike`); unmatched free text is
-      silently dropped, since `doctors` is staff-write-only under RLS and a guest can't create
-      one. Consider either loosening `doctors` INSERT to guests (a real RLS decision, not just
-      "add a policy") or adding a free-text fallback column on `bookings`.
+- [x] Atomic booking creation — `create_guest_booking()` SQL RPC (`supabase/schema.sql`) inserts
+      `bookings` + `booking_items` in one transaction, replacing the old two-call version that
+      could leave a booking with no line items if the second call failed. Verified the rollback
+      actually happens on failure, not just that it looks atomic in the SQL.
+- [x] Referring-doctor free text now persists — guests can create a new `doctors` row (RLS:
+      insert open to everyone, edit/delete still staff-only; see `docs/decisions-log.md` for why
+      that tradeoff was made) rather than only matching existing ones.
 
 ## Phase 2 — Reports
 
-- [ ] Report entry admin screen (`docs/admin-design.md` #3 — the highest-value remaining screen)
-- [ ] Decide `tests.normal_range_template` shape before building the form (see
-      `docs/admin-design.md` notes)
-- [ ] PDF generation matching the letterhead layout (system-design.md §8) — `@react-pdf/renderer`
-      is installed, no `lib/pdf/` implementation yet
-- [ ] Secure the phone+sample-number lookup — currently `lib/actions/reports.ts` queries `reports`
-      by `sample_no` alone with the anon key, no phone verification. Needs either a
-      `security definer` RPC that checks `guest_phone` server-side, or OTP, before this ships
-      (see `docs/database-schema.md` RLS section — this is a known gap, not a design choice)
-- [ ] Signed, time-limited URLs for report PDF downloads (system-design.md §8)
+- [x] Report entry admin screens (`/admin/reports/{new,[id]}`, `lib/actions/reports-admin.ts`,
+      `components/admin/ReportForm.tsx`) — sample no., patient details, optional link to a
+      booking (prefills patient info, "Create Report" button on `/admin/bookings`), dynamic
+      results table (add from catalog with auto-filled normal range + auto High/Low flag, or a
+      free-form custom row), draft/final status.
+- [x] `tests.normal_range_template` shape decided: `{type:"numeric",low,high,unit} |
+      {type:"text",display} | null` (`lib/types/normal-range.ts`) — editable from the test form,
+      read by report entry for auto-fill/flagging.
+- [x] PDF generation matching the letterhead (system-design.md §8) —
+      `lib/pdf/{ReportDocument,generateReportPdf}.tsx`, uploaded to the private `reports` bucket
+      on every save that has results (draft or final, so staff can preview before finalizing).
+      **Simplification from the spec:** one flat results table, not grouped by test-section
+      header (e.g. "Haemogram complete") — fine for now, revisit if reports commonly mix very
+      different test categories.
+- [x] Secure phone+sample-number lookup — `verify_report_access()`, a `security definer` RPC
+      (`supabase/schema.sql`) that only returns data for an exact phone+sample_no match on a
+      `status = 'final'` report. Added `reports.patient_phone` (denormalized, not joined through
+      `bookings`) so this works for walk-in patients entered directly by staff, not just reports
+      linked to an online booking.
+- [x] Signed, time-limited URLs for report PDF downloads — `lib/supabase/service.ts` (new
+      service-role client, `SUPABASE_SERVICE_ROLE_KEY` secret) generates a 5-minute signed URL
+      for exactly the path `verify_report_access()` verified, never an arbitrary caller-supplied
+      path. Verified: correct phone+sample works, wrong phone/sample/draft-status all correctly
+      return nothing, anon can't read `reports` directly or self-sign a URL.
+- [ ] Report entry has no OTP/second-factor beyond phone+sample_no matching an exact string —
+      that's the security model system-design.md §4.3 specified ("phone number + sample number,
+      or OTP-verified phone"); OTP was not implemented, phone+sample_no was judged sufficient
+      for MVP. Revisit if sample numbers turn out to be guessable/sequential in practice.
+- [ ] No SMS notification when a report goes `final` (system-design.md §9) — patients have no
+      way to know a report is ready except checking the lookup page themselves. Same gap as
+      booking-confirmed SMS, both blocked on the SMS gateway integration below.
 
 ## Phase 3 — SEO buildout
 

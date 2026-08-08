@@ -4,6 +4,41 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-08 — `reports.patient_phone` is its own column, not joined through
+  `bookings.guest_phone`.** The public report lookup (`verify_report_access()`) needs a phone
+  number to check on *every* report, but many reports won't have a `booking_id` at all — a
+  walk-in patient staff enters directly has no online booking to join through. Denormalizing the
+  phone onto `reports` itself (filled from the linked booking when there is one, typed manually
+  otherwise) makes the lookup work uniformly instead of silently failing for walk-ins.
+- **2026-08-08 — Guests can INSERT into `doctors` (not just SELECT).** system-design.md §7 wants
+  "Ref. By (doctor — autocomplete from doctors table, **or free text**)" for the booking flow.
+  Free text with no way to persist it was a real gap — the field was collected and then
+  discarded. `doctors` holds only name/phone/clinic — low sensitivity — so opening INSERT to
+  everyone (edit/delete stays staff-only) was judged an acceptable tradeoff against the UX gap.
+  Junk entries are a staff cleanup problem, not a security one.
+- **2026-08-08 — `create_guest_booking()` is a plain `security invoker` function, not `security
+  definer`.** Unlike `can_access_booking()`/`verify_report_access()`, this one doesn't need
+  elevated privileges — the goal is only atomicity (one transaction instead of two client calls
+  that could partially fail), so it deliberately runs as the calling role and leans on the
+  existing "guest create booking"/"guest create booking_items" RLS policies exactly as before.
+  Don't reach for `security definer` reflexively; use it only when the caller genuinely can't see
+  something they're allowed to act on (the `can_access_booking`/`verify_report_access` case).
+- **2026-08-08 — `normal_range_template` is a small tagged union
+  (`{type:"numeric",low,high,unit} | {type:"text",display} | null`), not free-form JSON.**
+  Needed a shape report entry could actually auto-fill and flag against — a raw JSON textarea
+  (the `custom_fields` pattern) would've pushed that parsing into report entry with no
+  guarantees about what's in it. `lib/types/normal-range.ts` is the single source of truth for
+  the shape, shared by the test form (writes it) and report entry (reads it for auto-fill +
+  `flagResult()`).
+- **2026-08-08 — The report PDF is one flat results table, not grouped by test-section header**
+  (system-design.md §8 shows "Haemogram complete" as an example section header). Simplification
+  for the first version — revisit if reports commonly mix categories enough that flat listing
+  gets confusing. `report_results.test_name` is free text with no link back to `test_categories`,
+  so grouping would need that connection re-established first.
+- **2026-08-08 — `HeroCarousel` is a ~50-line hand-rolled client component, not a carousel
+  library.** Auto-advance via `setInterval` + opacity transitions covers the actual requirement
+  (a few captioned images cycling on the homepage) without a new dependency; revisit only if the
+  carousel needs to do something this doesn't (swipe gestures, more than a handful of slides).
 - **2026-08-08 — Catalog images are `tests.primary_image_url`/`packages.primary_image_url`
   (one column, uploaded straight to Storage), not the `media` table.** system-design.md §5.1
   already justifies `media` for multi-photo/landing-page use and `primary_image_url` for the

@@ -37,8 +37,12 @@ require re-deriving the steps.
    Supabase project without this trigger for some reason, add it first.
 7. Run `seed.sql` (same `psql` command as step 2) for starter catalog content — 5 tests + 1
    package. Everything in it is `on conflict do nothing`, safe to re-run. Replace with the lab's
-   real price list via `/admin/catalog` once that has write support for `packages` (currently
-   only `tests` does — see docs/admin-design.md).
+   real price list via `/admin/catalog`/`/admin/packages` whenever available.
+8. Copy the **service role secret** (**Project Settings → API → service_role**, click to reveal)
+   into `.env.local` as `SUPABASE_SERVICE_ROLE_KEY` — no `NEXT_PUBLIC_` prefix, it bypasses RLS
+   and must stay server-only. Used only by `lib/supabase/service.ts` for signed report-download
+   URLs — see docs/database-schema.md. If deploying to Vercel, also add it there (Production +
+   Preview as "Sensitive"; Development doesn't support the sensitive flag).
 
 ## Testing RLS changes
 

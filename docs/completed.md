@@ -4,6 +4,49 @@ Reverse-chronological log of what's actually built, so a new session doesn't hav
 every file to know the current state. When you finish something from [todo.md](./todo.md), move
 its line here with the date.
 
+## 2026-08-08 — Phase 1 complete, Phase 2 (report entry) complete
+
+Everything from Phase 1's remaining backlog plus all of Phase 2, in one pass. Phase 1 is now
+fully done; Phase 2 is functionally complete with two documented, deliberate scope limits (no
+OTP beyond phone+sample_no, no SMS on report-ready — both in [todo.md](./todo.md)).
+
+**Phase 1 leftovers:**
+- `create_guest_booking()` — atomic booking creation (one RPC, one transaction) replacing the
+  old two-call insert that could leave a booking with no line items on partial failure
+- Guests can now create a `doctors` row for an unmatched referring-doctor name instead of it
+  being silently dropped
+- Homepage hero carousel: `/admin/site-content` manages `media` rows, `HeroCarousel.tsx` renders
+  them; falls back to text-only hero when empty
+- `normal_range_template` shape decided (`lib/types/normal-range.ts`) and wired into the test
+  form — the prerequisite for report entry's auto-fill/flagging
+
+**Phase 2 — report entry:**
+- Full admin screens (`/admin/reports`) — list, new (optionally prefilled from a booking via
+  "Create Report" on `/admin/bookings`), edit. Dynamic results table: add a row from the catalog
+  (auto-fills normal range, auto-flags High/Low against `normal_range_template`) or a free-form
+  custom row for anything not in the catalog.
+- PDF generation matching the lab's letterhead (`@react-pdf/renderer`,
+  `lib/pdf/{ReportDocument,generateReportPdf}.tsx`), regenerated and uploaded to the private
+  `reports` bucket on every save that has results.
+- Secure phone+sample-number lookup: `verify_report_access()`, a `security definer` RPC that
+  only returns data for an exact match on a `status = 'final'` report — this closes a gap that's
+  been flagged since the very first scaffold (the original stub queried `reports` by `sample_no`
+  alone, no phone check at all). Added `reports.patient_phone` so it works for walk-in patients
+  with no linked booking, not just online bookings.
+- Signed download URLs via a new service-role client (`lib/supabase/service.ts`,
+  `SUPABASE_SERVICE_ROLE_KEY` — new server-only secret in `.env.local` and Vercel), scoped to
+  only the exact path `verify_report_access()` just verified.
+
+**Verification, not just review:** every RLS-relevant path added this round was tested against
+the live database as the actual `anon`/staff roles — atomic-booking rollback on failure,
+doctor auto-create, landing-media upload+read, and the full report lookup matrix (correct
+phone+sample, wrong phone, wrong sample, draft-status exclusion, anon blocked from both direct
+table read and self-signing a URL, service role successfully producing a working download link).
+PDF generation was also smoke-tested standalone (via `npx tsx`) before wiring it into the
+Server Action, confirming valid PDF output.
+
+Deployed and smoke-tested live at https://pokaranlab.vercel.app.
+
 ## 2026-08-08 — Catalog image upload
 
 - Staff can upload one primary image per test/package from `/admin/catalog` and

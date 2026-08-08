@@ -49,6 +49,24 @@ from scratch every session.
   automatically synced. `supabase/README.md` has the `psql` command; apply just the new/changed
   statements directly (don't re-run the whole file against a non-empty DB, most `create table`
   statements aren't idempotent).
+- **`SUPABASE_SERVICE_ROLE_KEY` exists** (server-only, no `NEXT_PUBLIC_` prefix, set in
+  `.env.local` and Vercel) — used by exactly one thing, `lib/supabase/service.ts`, to generate
+  signed download URLs for the private `reports` bucket after `verify_report_access()` has
+  already verified the caller's phone+sample_no match. Never import it anywhere a Client
+  Component could pull it in, and never use it as a shortcut around RLS for anything else — if a
+  new feature seems to need it, that's usually a sign a `security definer` RPC (narrowly scoped,
+  like `verify_report_access()`) is the better fit. See `docs/database-schema.md`.
+- **Server Action file-upload fields need to be pulled off `formData` before
+  `Object.fromEntries()`/`zod`** — a `File` value in that object either gets silently stripped
+  (zod's default behavior for unrecognized keys) or breaks a schema that doesn't expect it.
+  `lib/actions/catalog.ts`, `lib/actions/packages.ts`, `lib/actions/media.ts` all show the
+  pattern. Actual upload logic lives in `lib/actions/upload-image.ts` — a plain helper module,
+  not itself `"use server"`, since a `"use server"` file may only export async functions.
+- **Multi-statement DB writes that need to be atomic go through a SQL RPC, not multiple
+  PostgREST calls** — see `create_guest_booking()` in `supabase/schema.sql` (bookings +
+  booking_items in one transaction) for the pattern. Default to `security invoker` (the
+  default — don't add `security definer` unless the caller genuinely can't see something they're
+  allowed to act on, e.g. the report-lookup case above).
 - **Anything specific to this lab (not generic app UI) is a DB row with an admin form, never a
   hardcoded constant** — including "placeholder" values. This was gotten wrong once already
   (contact info/hours lived in a `.ts` file with no way for the owner to edit it — fixed by

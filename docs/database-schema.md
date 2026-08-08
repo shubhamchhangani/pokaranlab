@@ -63,16 +63,36 @@ Every table has RLS enabled. The pattern used throughout:
 - **Patient scoped access** on `bookings`, `booking_items`, `reports`, `report_results` — a
   patient can only read rows tied to their own `profiles.id` via `patient_profile_id` (bookings)
   or the join through `bookings` (everything downstream of it). Guest bookings (no account) have
-  `patient_profile_id = null` and are **not** patient-readable after creation — only staff and,
-  eventually, the phone+sample-number lookup flow (via a `security definer` RPC, not yet built —
-  see [todo.md](./todo.md)) can retrieve them.
+  `patient_profile_id = null` and are **not** patient-readable after creation — only staff, or a
+  guest going through `verify_report_access()` (below), can retrieve them.
 
-The `download-report` and `book-a-test` public flows currently go through the **anon key**, so
-until the lookup RPC exists, `lib/actions/reports.ts` queries `reports` directly and depends on
-`sample_no` being effectively unguessable (it isn't, yet — it's staff-entered free text). Treat
-this as a known gap, not a design decision: don't ship the phone+sample lookup to production
-without either (a) an RPC that checks the booking's `guest_phone` server-side, or (b) OTP
-verification before the query runs, as system-design.md §4.3 specifies.
+### The public report lookup: `verify_report_access()` + a service-role client for the download
+
+`lib/actions/reports.ts`'s `lookupReport` is the one place in the app where a completely
+unauthenticated visitor needs data out of `reports` — and it's a two-step problem, not one:
+
+1. **Is this phone+sample_no combination real, and is the report finished?** `reports` has RLS
+   that gives guests no read access at all (same reasoning as `bookings` above). A guest can't
+   run this check as a plain `select`. `verify_report_access(p_phone, p_sample_no)` is a
+   `security definer` SQL function — the only door into `reports` a guest has — that returns
+   exactly three columns (`pdf_path`, `patient_name`, `reporting_date`), and only for an exact
+   match where `status = 'final'`. It cannot be used to enumerate reports or read anything else.
+   `reports.patient_phone` exists specifically so this works — it's **not** joined through
+   `bookings.guest_phone`, because a report for a walk-in patient entered directly by staff has
+   no booking at all, and the lookup needs to work for those too.
+2. **Given a verified `pdf_path`, get a URL that's actually downloadable.** The `reports` bucket
+   has no public-read storage policy (private, on purpose), and there's no RLS policy that could
+   grant a guest signed-URL rights without also granting broader access. This is the one
+   legitimate use of the service-role client (`lib/supabase/service.ts`) in the app: it bypasses
+   RLS entirely, so it must only ever be called with a path that step 1 already verified belongs
+   to this phone/sample pair — never a caller-supplied path. `SUPABASE_SERVICE_ROLE_KEY` is a
+   server-only secret (no `NEXT_PUBLIC_` prefix) set in `.env.local` and Vercel; it must never be
+   imported into anything a Client Component could pull in.
+
+Verified end-to-end against the live DB (not just read from the policy): correct phone+sample
+returns the right path; wrong phone, wrong sample, and `draft` status all correctly return
+nothing; a guest can't read `reports` directly or self-generate a signed URL; the service-role
+client can, and the resulting URL actually downloads the file.
 
 ### Gotcha: an RLS policy that references another RLS-protected table needs `security definer`
 
@@ -92,6 +112,27 @@ check in a `security definer` function.** And test it as the actual `anon`/`auth
 (a real anon-key client, or `psql` with `SET ROLE anon`) — `psql` as the default `postgres`
 connection is the table owner and bypasses RLS entirely, so it will not catch this class of bug.
 
+## Atomicity: `create_guest_booking()`
+
+`lib/actions/bookings.ts` inserts a booking and its line items through a single RPC call,
+`create_guest_booking(...)`, instead of two separate PostgREST calls. The function is plain
+plpgsql with **no** `security definer` — deliberately, since the goal here is only atomicity
+(one transaction from the client's perspective, so a failure partway through rolls back
+everything), not a privilege change. It runs as the calling role, so the existing "guest create
+booking"/"guest create booking_items" RLS policies apply exactly as if the two inserts had been
+issued directly. Verified the rollback actually happens (a deliberately-bad `test_id` fails the
+whole call, and the `bookings` row it would have created doesn't exist afterward), not just that
+the SQL looks right.
+
+## Guests can create (but not edit or delete) a `doctors` row
+
+`doctors` has a `for insert with check (true)` policy open to everyone, alongside the existing
+staff-only policy for update/delete. This is a narrow, deliberate exception to "guests can't
+write catalog-ish tables" — see [decisions-log.md](./decisions-log.md) for the reasoning
+(low-sensitivity data, real UX gap otherwise). `lib/actions/bookings.ts` uses it to create a
+doctor when a guest's typed name doesn't match an existing one (`ilike`), rather than silently
+dropping the referral.
+
 ## What's implemented vs. schema-only
 
 Everything in `schema.sql` exists as a table today, but the app only reads/writes a subset:
@@ -99,12 +140,13 @@ Everything in `schema.sql` exists as a table today, but the app only reads/write
 | Table | App usage today |
 |---|---|
 | `site_settings` | Full — public read (Header/Footer/LocationMap/find-us/about), staff update via `/admin/settings` |
-| `tests`, `test_categories` | `tests`: full CRUD via `/admin/catalog`, including `primary_image_url` (upload to `public-media`, see below). `test_categories`: add/delete via `/admin/categories` (no rename; `default_image_url` column is unused — see `media` row below). Both public read (falls back to mock data — see [decisions-log.md](./decisions-log.md)) |
-| `bookings`, `booking_items` | Insert (booking form — resolves selected tests *and* packages to real rows, computes `total_amount`, inserts both tables), read (admin bookings list with status filter, dashboard counts), update (`status` only, via `/admin/bookings`) |
-| `packages`, `package_tests` | Full CRUD via `/admin/packages`, including `primary_image_url` upload and a checklist UI for `package_tests` (delete-all-then-insert-selected on save — see [admin-design.md](./admin-design.md)). Public read + detail page (`/[locale]/packages/[slug]`) |
-| `media` | Still schema only. `tests.primary_image_url`/`packages.primary_image_url` (single image, uploaded via `lib/actions/upload-image.ts`) are wired up and don't use this table at all — `media` is for the *other* cases from system-design.md §5.1 (multiple photos per test, landing-page hero/gallery, category-level default images), none of which have a UI yet |
-| `doctors` | Public read only — the booking form can *link* an existing doctor by name, can't create one (staff-write-only by RLS; see [todo.md](./todo.md)) |
-| `reports`, `report_results`, `staff`, `profiles` | Schema + partial (staff/profiles used by admin auth; reports has a read-only lookup stub) |
+| `tests`, `test_categories` | `tests`: full CRUD via `/admin/catalog`, including `primary_image_url` and `normal_range_template` (see [normal-range.ts](../lib/types/normal-range.ts)). `test_categories`: add/delete via `/admin/categories` (no rename; `default_image_url` column is unused). Both public read (falls back to mock data — see [decisions-log.md](./decisions-log.md)) |
+| `bookings`, `booking_items` | Insert via `create_guest_booking()` RPC (atomic — see above), read (admin bookings list with status filter, dashboard counts, "Create Report" link), update (`status` only, via `/admin/bookings`) |
+| `packages`, `package_tests` | Full CRUD via `/admin/packages`, including `primary_image_url` upload and a checklist UI for `package_tests` (delete-all-then-insert-selected on save). Public read + detail page + bookable |
+| `media` | `entity_type='landing'` rows power the homepage hero carousel, managed from `/admin/site-content`. `entity_type='test'`/`'package'` rows are **not** used — `tests.primary_image_url`/`packages.primary_image_url` (single image each) cover that case instead, uploaded directly via `lib/actions/upload-image.ts` without touching this table |
+| `doctors` | Public read; guests can insert (new doctor) but not edit/delete (staff-only) — see above |
+| `reports`, `report_results` | Full via `/admin/reports` (create/edit/delete, PDF generation on save). Public: `verify_report_access()` RPC only, no direct table access — see above |
+| `staff`, `profiles` | Used by admin auth (`lib/auth/admin.ts`); no admin UI to manage staff accounts yet (system-design.md §7 screen 6) |
 
 `supabase/seed.sql` (new) has starter catalog content — 5 tests + 1 package — matching what
 `lib/data/mock-content.ts` used to fake. Run it once after `schema.sql`/`storage.sql` on a fresh
