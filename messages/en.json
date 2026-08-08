@@ -75,6 +75,7 @@
     "phone": "Phone Number",
     "sampleNo": "Sample Number",
     "lookup": "Find Report",
+    "download": "Download PDF",
     "notFound": "No report found for these details. Please check and try again, or contact the lab."
   },
   "findUs": {

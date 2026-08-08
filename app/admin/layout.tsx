@@ -15,6 +15,8 @@ const navItems = [
   { href: "/admin/catalog", label: "Catalog" },
   { href: "/admin/packages", label: "Packages" },
   { href: "/admin/categories", label: "Categories" },
+  { href: "/admin/reports", label: "Reports" },
+  { href: "/admin/site-content", label: "Site Content" },
   { href: "/admin/settings", label: "Site Settings" },
 ];
 

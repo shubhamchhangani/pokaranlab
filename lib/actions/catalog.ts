@@ -24,6 +24,13 @@ const testSchema = z.object({
   home_collection_available: z
     .union([z.literal("on"), z.undefined()])
     .transform((v) => v === "on"),
+  // Built into `normal_range_template` jsonb below, not stored as columns themselves — see
+  // docs/database-schema.md for the shape and why report entry depends on it.
+  normal_range_type: z.enum(["none", "numeric", "text"]).optional().default("none"),
+  normal_range_low: z.string().optional(),
+  normal_range_high: z.string().optional(),
+  normal_range_unit: z.string().optional(),
+  normal_range_text: z.string().optional(),
   custom_fields: z
     .string()
     .optional()
@@ -69,13 +76,34 @@ export async function upsertTest(
     return { status: "error", fieldErrors, message: "Please check the highlighted fields." };
   }
 
-  const { id, ...values } = parsed.data;
+  const {
+    id,
+    normal_range_type,
+    normal_range_low,
+    normal_range_high,
+    normal_range_unit,
+    normal_range_text,
+    ...values
+  } = parsed.data;
   const supabase = await createClient();
+
+  const normalRangeTemplate =
+    normal_range_type === "numeric"
+      ? {
+          type: "numeric",
+          low: Number(normal_range_low) || 0,
+          high: Number(normal_range_high) || 0,
+          unit: normal_range_unit || "",
+        }
+      : normal_range_type === "text"
+        ? { type: "text", display: normal_range_text || "" }
+        : null;
 
   const uploadedUrl = await uploadPrimaryImage(supabase, imageFile, "tests");
   const row = {
     ...values,
     category_id: values.category_id || null,
+    normal_range_template: normalRangeTemplate,
     ...(uploadedUrl ? { primary_image_url: uploadedUrl } : removeImage ? { primary_image_url: null } : {}),
   };
 

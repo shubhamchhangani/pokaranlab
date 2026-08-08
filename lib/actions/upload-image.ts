@@ -15,7 +15,7 @@ export async function uploadPrimaryImage(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: SupabaseClient<any>,
   file: FormDataEntryValue | null,
-  folder: "tests" | "packages"
+  folder: "tests" | "packages" | "landing"
 ): Promise<string | null> {
   if (!(file instanceof File) || file.size === 0) return null;
   if (!ALLOWED_TYPES.includes(file.type)) return null;

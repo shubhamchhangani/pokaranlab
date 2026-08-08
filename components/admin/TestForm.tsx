@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { upsertTest, type TestFormState } from "@/lib/actions/catalog";
 import { FormField, inputClasses } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
 import type { TestCategory } from "@/lib/data/categories";
+import type { NormalRangeTemplate } from "@/lib/types/normal-range";
 
 const initialState: TestFormState = { status: "idle" };
 
@@ -22,6 +23,7 @@ export type TestFormInitialValues = {
   home_collection_available: boolean;
   custom_fields: Record<string, unknown> | null;
   primary_image_url: string | null;
+  normal_range_template: NormalRangeTemplate;
 };
 
 export function TestForm({
@@ -32,6 +34,8 @@ export function TestForm({
   initialValues?: TestFormInitialValues;
 }) {
   const [state, formAction, pending] = useActionState(upsertTest, initialState);
+  const [rangeType, setRangeType] = useState(initialValues?.normal_range_template?.type ?? "none");
+  const template = initialValues?.normal_range_template;
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
@@ -184,6 +188,55 @@ export function TestForm({
         />
         Home collection available
       </label>
+
+      <FormField label="Normal range (used to auto-fill and flag High/Low in report entry)" htmlFor="normal_range_type">
+        <select
+          id="normal_range_type"
+          name="normal_range_type"
+          value={rangeType}
+          onChange={(e) => setRangeType(e.target.value as typeof rangeType)}
+          className={inputClasses}
+        >
+          <option value="none">— None —</option>
+          <option value="numeric">Numeric range (e.g. 12–16 g/dL)</option>
+          <option value="text">Text (e.g. &ldquo;Negative&rdquo;, &ldquo;Non-reactive&rdquo;)</option>
+        </select>
+
+        {rangeType === "numeric" && (
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <input
+              name="normal_range_low"
+              type="number"
+              step="any"
+              placeholder="Low"
+              defaultValue={template?.type === "numeric" ? template.low : undefined}
+              className={inputClasses}
+            />
+            <input
+              name="normal_range_high"
+              type="number"
+              step="any"
+              placeholder="High"
+              defaultValue={template?.type === "numeric" ? template.high : undefined}
+              className={inputClasses}
+            />
+            <input
+              name="normal_range_unit"
+              placeholder="Unit (e.g. g/dL)"
+              defaultValue={template?.type === "numeric" ? template.unit : undefined}
+              className={inputClasses}
+            />
+          </div>
+        )}
+        {rangeType === "text" && (
+          <input
+            name="normal_range_text"
+            placeholder="e.g. Negative"
+            defaultValue={template?.type === "text" ? template.display : undefined}
+            className={`${inputClasses} mt-2`}
+          />
+        )}
+      </FormField>
 
       <FormField
         label="Custom fields (JSON — e.g. fasting requirement, home collection charge)"

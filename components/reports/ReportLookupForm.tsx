@@ -39,7 +39,7 @@ export function ReportLookupForm() {
           rel="noopener noreferrer"
           className="text-sm font-medium text-brand-teal hover:underline"
         >
-          {t("lookup")} →
+          {t("download")} →
         </a>
       )}
       {(state.status === "not_found" || state.status === "error") && (

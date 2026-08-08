@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getAdminSession } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { BOOKING_STATUSES } from "@/lib/data/booking-statuses";
@@ -60,6 +61,7 @@ export default async function AdminBookingsPage(props: PageProps<"/admin/booking
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3">Amount</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -73,11 +75,19 @@ export default async function AdminBookingsPage(props: PageProps<"/admin/booking
                 <td className="px-4 py-3">
                   <BookingStatusSelect bookingId={booking.id} status={booking.status} />
                 </td>
+                <td className="px-4 py-3 text-right">
+                  <Link
+                    href={`/admin/reports/new?booking=${booking.id}`}
+                    className="text-brand-teal hover:underline"
+                  >
+                    Create Report
+                  </Link>
+                </td>
               </tr>
             ))}
             {(!bookings || bookings.length === 0) && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-brand-ink/50">
+                <td colSpan={7} className="px-4 py-8 text-center text-brand-ink/50">
                   No bookings yet.
                 </td>
               </tr>

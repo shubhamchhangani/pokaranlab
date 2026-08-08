@@ -209,12 +209,21 @@ create table reports (
   booking_id uuid references bookings (id) on delete set null,
   sample_no text not null unique,
   patient_name text not null,
+  -- Denormalized from the booking (when linked) rather than only living on `bookings`, because
+  -- reports for walk-in patients entered directly by staff have no booking at all — the public
+  -- phone+sample-number lookup (verify_report_access(), below) needs a phone number to check on
+  -- every report, not just ones that started as an online booking.
+  patient_phone text,
   age text,
   sex text,
   ref_by_doctor text,
   sample_received_date date,
   reporting_date date,
   technician_name text,
+  -- Storage *path* within the private `reports` bucket (e.g. "reports/<id>.pdf"), not a public
+  -- URL — the bucket has no public-read policy. Patients get a short-lived signed URL generated
+  -- on demand after verify_report_access() confirms phone+sample_no match; see
+  -- lib/actions/reports.ts and docs/database-schema.md.
   pdf_url text,
   status text not null default 'draft' check (status in ('draft', 'final')),
   created_at timestamptz not null default now()
@@ -304,6 +313,12 @@ create policy "staff write media" on media for all
 create policy "public read doctors" on doctors for select using (true);
 create policy "staff write doctors" on doctors for all
   using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+-- Guests booking a test can name a referring doctor not yet in the table (system-design.md §7
+-- allows free text). `doctors` holds only a name/phone/clinic — low sensitivity, so letting
+-- anyone create a row (never edit/delete — that's still staff-only via the policy above) is an
+-- acceptable tradeoff against a real UX gap. Junk entries are a staff cleanup problem, not a
+-- security one. See docs/decisions-log.md.
+create policy "guest create doctor" on doctors for insert with check (true);
 
 -- site_settings is update-only from the app (the seed insert above is the only insert this
 -- table ever needs) — no insert/delete policy, so even staff can't create a second row.
@@ -336,6 +351,57 @@ create policy "patient read own booking_items" on booking_items for select
 create policy "guest create booking_items" on booking_items for insert
   with check (can_access_booking(booking_id));
 
+-- Atomic booking creation. `lib/actions/bookings.ts` used to insert `bookings` then
+-- `booking_items` as two separate PostgREST calls — if the second failed, the first was already
+-- committed, leaving a booking with no line items. A single plpgsql function call is one
+-- statement from the client's perspective, so Postgres rolls back both inserts together if
+-- either fails. Deliberately `security invoker` (the default, not stated) — it runs with the
+-- caller's own privileges, so the "guest create booking"/"guest create booking_items" RLS
+-- policies above still apply exactly as if the two inserts were issued directly. This is an
+-- atomicity fix, not a privilege escalation.
+create or replace function create_guest_booking(
+  p_guest_name text,
+  p_guest_phone text,
+  p_guest_age text,
+  p_guest_sex text,
+  p_collection_type text,
+  p_address text,
+  p_scheduled_date date,
+  p_scheduled_slot text,
+  p_doctor_id uuid,
+  p_total_amount numeric,
+  p_items jsonb -- array of {"test_id"?: uuid, "package_id"?: uuid, "price": numeric}
+)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_booking_id uuid := gen_random_uuid();
+  v_item jsonb;
+begin
+  insert into bookings (
+    id, guest_name, guest_phone, guest_age, guest_sex, collection_type, address,
+    scheduled_date, scheduled_slot, doctor_id, status, payment_status, total_amount
+  ) values (
+    v_booking_id, p_guest_name, p_guest_phone, p_guest_age, p_guest_sex, p_collection_type,
+    p_address, p_scheduled_date, p_scheduled_slot, p_doctor_id, 'pending', 'unpaid', p_total_amount
+  );
+
+  for v_item in select * from jsonb_array_elements(p_items)
+  loop
+    insert into booking_items (booking_id, test_id, package_id, price_at_booking)
+    values (
+      v_booking_id,
+      nullif(v_item->>'test_id', '')::uuid,
+      nullif(v_item->>'package_id', '')::uuid,
+      (v_item->>'price')::numeric
+    );
+  end loop;
+
+  return v_booking_id;
+end;
+$$;
+
 -- Reports: staff see/manage all; patients see only reports linked to their own bookings.
 create policy "staff manage reports" on reports for all
   using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
@@ -347,6 +413,22 @@ create policy "patient read own reports" on reports for select
         and bookings.patient_profile_id = auth.uid()
     )
   );
+
+-- The public download-report flow (guest, no account, no RLS-visible path to `reports`) needs a
+-- way to check "does this phone + sample number match a finalized report" without granting
+-- broad read access. `security definer` here is intentional and narrow: the function returns
+-- only the three fields the download flow needs, only for an exact phone+sample_no match, only
+-- when status = 'final'. It does NOT return the row itself or allow listing/enumeration.
+create or replace function verify_report_access(p_phone text, p_sample_no text)
+returns table (pdf_path text, patient_name text, reporting_date date)
+language sql
+security definer
+stable
+as $$
+  select pdf_url, patient_name, reporting_date
+  from reports
+  where patient_phone = p_phone and sample_no = p_sample_no and status = 'final';
+$$;
 
 create policy "staff manage report_results" on report_results for all
   using (is_staff(auth.uid())) with check (is_staff(auth.uid()));

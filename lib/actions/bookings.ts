@@ -87,66 +87,57 @@ export async function createBooking(
     };
   }
 
-  // Doctors are staff-managed (RLS: public read, staff write — see supabase/schema.sql), so a
-  // guest booking can only link an *existing* doctor by name, never create one. Unmatched free
-  // text is not persisted yet — see docs/todo.md.
+  // `doctors` allows guest inserts (RLS: "guest create doctor", public write, staff-only
+  // edit/delete — see supabase/schema.sql) precisely so this can create a doctor that doesn't
+  // exist yet rather than dropping the referral on the floor.
   let doctorId: string | null = null;
   if (data.referringDoctor?.trim()) {
-    const { data: doctor } = await supabase
+    const name = data.referringDoctor.trim();
+    const { data: existing } = await supabase
       .from("doctors")
       .select("id")
-      .ilike("name", data.referringDoctor.trim())
+      .ilike("name", name)
       .maybeSingle();
-    doctorId = doctor?.id ?? null;
+
+    if (existing) {
+      doctorId = existing.id;
+    } else {
+      const { data: created } = await supabase
+        .from("doctors")
+        .insert({ name })
+        .select("id")
+        .single();
+      doctorId = created?.id ?? null;
+    }
   }
 
   const totalAmount =
     tests.reduce((sum, t) => sum + Number(t.price), 0) +
     packages.reduce((sum, p) => sum + Number(p.price), 0);
 
-  // Generate the id ourselves and skip `.select()` after insert: guest bookings (no
-  // patient_profile_id) intentionally have no RLS SELECT policy — anyone with the anon key
-  // reading every guest's name/phone/address back would be a real privacy leak — so
-  // `.insert().select()` would fail here even though the plain insert is allowed. See
-  // docs/database-schema.md and docs/decisions-log.md.
-  const bookingId = crypto.randomUUID();
-
-  const { error: bookingError } = await supabase.from("bookings").insert({
-    id: bookingId,
-    guest_name: data.guestName,
-    guest_phone: data.guestPhone,
-    guest_age: data.guestAge ?? null,
-    guest_sex: data.guestSex ?? null,
-    collection_type: data.collectionType,
-    address: data.address ?? null,
-    scheduled_date: data.scheduledDate,
-    scheduled_slot: data.scheduledSlot,
-    doctor_id: doctorId,
-    status: "pending",
-    payment_status: "unpaid",
-    total_amount: totalAmount,
-  });
-
-  if (bookingError) {
-    return { status: "error", message: "Could not save your booking. Please call the lab directly." };
-  }
-
-  const bookingItems = [
-    ...tests.map((t) => ({ booking_id: bookingId, test_id: t.id, price_at_booking: t.price })),
-    ...packages.map((p) => ({
-      booking_id: bookingId,
-      package_id: p.id,
-      price_at_booking: p.price,
-    })),
+  const items = [
+    ...tests.map((t) => ({ test_id: t.id, price: t.price })),
+    ...packages.map((p) => ({ package_id: p.id, price: p.price })),
   ];
 
-  const { error: itemsError } = await supabase.from("booking_items").insert(bookingItems);
+  // Single RPC call so the bookings + booking_items inserts are one transaction — see
+  // create_guest_booking() in supabase/schema.sql for why this replaced two separate inserts.
+  const { error: rpcError } = await supabase.rpc("create_guest_booking", {
+    p_guest_name: data.guestName,
+    p_guest_phone: data.guestPhone,
+    p_guest_age: data.guestAge ?? null,
+    p_guest_sex: data.guestSex ?? null,
+    p_collection_type: data.collectionType,
+    p_address: data.address ?? null,
+    p_scheduled_date: data.scheduledDate,
+    p_scheduled_slot: data.scheduledSlot,
+    p_doctor_id: doctorId,
+    p_total_amount: totalAmount,
+    p_items: items,
+  });
 
-  if (itemsError) {
-    // The booking itself is saved and visible to staff even if the line-item breakdown isn't —
-    // not ideal, but better than losing the booking. See docs/todo.md for making this atomic
-    // (an RPC function, since postgrest doesn't support multi-statement transactions).
-    return { status: "success" };
+  if (rpcError) {
+    return { status: "error", message: "Could not save your booking. Please call the lab directly." };
   }
 
   // TODO(Phase 2): trigger the booking-confirmed SMS here (docs/system-design.md §9) — no SMS

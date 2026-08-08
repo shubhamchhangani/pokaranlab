@@ -1,10 +1,16 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { buttonClasses } from "@/components/ui/Button";
 import { WhatsAppLink } from "@/components/layout/WhatsAppLink";
+import { HeroCarousel } from "@/components/sections/HeroCarousel";
+import { getLandingMedia } from "@/lib/data/media";
 
 export async function Hero() {
-  const t = await getTranslations("home");
+  const [t, locale, images] = await Promise.all([
+    getTranslations("home"),
+    getLocale(),
+    getLandingMedia(),
+  ]);
 
   return (
     <section className="bg-gradient-to-b from-brand-sandstone/15 to-brand-paper px-4 py-20 sm:px-6">
@@ -21,6 +27,8 @@ export async function Hero() {
             {t("ctaWhatsapp")}
           </WhatsAppLink>
         </div>
+
+        {images.length > 0 && <HeroCarousel images={images} locale={locale} />}
       </div>
     </section>
   );
