@@ -17,10 +17,9 @@ current rather than exhaustive; it's meant to be read at the start of a session,
 - [x] Vercel project linked and deployed — **live at https://pokaranlab.vercel.app**
       (`shubham-chhanganis-projects/pokaranlab`), `NEXT_PUBLIC_SUPABASE_URL`/
       `NEXT_PUBLIC_SUPABASE_ANON_KEY` set for Production/Preview/Development
-- [ ] Vercel's GitHub App isn't connected to the repo yet (auto-connect failed during `vercel
-      link` — "Make sure there aren't any typos and that you have access to the repository").
-      Without it, deploys are manual (`vercel --prod`) instead of on every push. Fix from the
-      Vercel dashboard → Project Settings → Git, or re-run `vercel git connect`.
+- [x] Vercel's GitHub App connected (done manually from the Vercel dashboard, after the CLI's
+      auto-connect during `vercel link` failed) — pushes to `main` now auto-deploy to
+      Production, confirmed working
 - [ ] Register `pokaranlab.com` and add it as the Vercel project's domain (currently only the
       `*.vercel.app` URL exists)
 - [ ] Claim the Google Business Profile
