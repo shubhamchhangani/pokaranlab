@@ -1,0 +1,97 @@
+{
+  "brand": {
+    "name": "Pokaran Lab",
+    "fullName": "Pokaran Diagnostic & Dr X Ray Center"
+  },
+  "nav": {
+    "home": "Home",
+    "tests": "Tests & Packages",
+    "bookATest": "Book a Test",
+    "downloadReport": "Download Report",
+    "findUs": "Find Us",
+    "about": "About",
+    "bookOnWhatsapp": "Book on WhatsApp"
+  },
+  "home": {
+    "heroTitle": "Trusted Diagnostics in the Heart of Pokaran",
+    "heroSubtitle": "Blood tests, digital X-ray & ECG — accurate reports, home sample collection, same-day results.",
+    "ctaBook": "Book a Test",
+    "ctaWhatsapp": "Ask on WhatsApp",
+    "servicesTitle": "Our Services",
+    "services": {
+      "bloodTests": {
+        "title": "Blood Investigation",
+        "description": "All types of blood tests with accurate, timely reports."
+      },
+      "xray": {
+        "title": "Digital X-Ray",
+        "description": "High-quality digital X-ray imaging."
+      },
+      "ecg": {
+        "title": "ECG",
+        "description": "Electrocardiogram testing for heart health."
+      },
+      "homeCollection": {
+        "title": "Home Sample Collection",
+        "description": "We come to you — book a slot that works for your day."
+      }
+    },
+    "popularTestsTitle": "Popular Tests",
+    "popularTestsViewAll": "View All Tests",
+    "whyUsTitle": "Why Choose Us",
+    "locationTitle": "Find Us",
+    "getDirections": "Get Directions"
+  },
+  "tests": {
+    "pageTitle": "Tests & Health Packages",
+    "searchPlaceholder": "Search by test name or health concern",
+    "price": "Price",
+    "sampleType": "Sample Type",
+    "turnaround": "Report Time",
+    "homeCollectionAvailable": "Home collection available",
+    "bookThisTest": "Book This Test",
+    "noResults": "No tests found. Try a different search."
+  },
+  "booking": {
+    "pageTitle": "Book a Test",
+    "step1Title": "Select Tests or Packages",
+    "step2Title": "Collection Details",
+    "step3Title": "Your Details",
+    "collectionType": "Collection Type",
+    "walkIn": "Walk-in at Lab",
+    "homeCollection": "Home Collection",
+    "address": "Address",
+    "preferredDate": "Preferred Date",
+    "preferredSlot": "Preferred Time Slot",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "age": "Age",
+    "sex": "Sex",
+    "referringDoctor": "Referring Doctor (optional)",
+    "submit": "Confirm Booking",
+    "submitting": "Submitting...",
+    "successTitle": "Booking Received!",
+    "successMessage": "We've received your booking. You'll get an SMS confirmation shortly.",
+    "errorMessage": "Something went wrong. Please try again or call us directly."
+  },
+  "downloadReport": {
+    "pageTitle": "Download Your Report",
+    "phone": "Phone Number",
+    "sampleNo": "Sample Number",
+    "lookup": "Find Report",
+    "notFound": "No report found for these details. Please check and try again, or contact the lab."
+  },
+  "findUs": {
+    "pageTitle": "Find Us",
+    "addressLabel": "Address",
+    "phoneLabel": "Phone",
+    "hoursLabel": "Hours"
+  },
+  "about": {
+    "pageTitle": "About Pokaran Lab"
+  },
+  "footer": {
+    "tagline": "All type of blood investigation | Digital X-ray | E.C.G.",
+    "rightsReserved": "All rights reserved."
+  }
+}

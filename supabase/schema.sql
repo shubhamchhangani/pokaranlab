@@ -1,0 +1,272 @@
+-- Pokaran Lab — initial schema
+-- Run against a fresh Supabase project via the SQL editor, or `supabase db push`.
+-- Mirrors docs/database-schema.md and Section 5 of docs/system-design.md — keep both in sync.
+
+create extension if not exists "pgcrypto";
+
+-- ─────────────────────────────────────────────────────────────────
+-- Profiles (extends auth.users) & staff
+-- ─────────────────────────────────────────────────────────────────
+
+create table profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  full_name text,
+  phone text,
+  email text,
+  role text not null default 'patient' check (role in ('patient', 'staff', 'admin')),
+  created_at timestamptz not null default now()
+);
+
+create table staff (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles (id) on delete cascade,
+  staff_role text not null check (staff_role in ('owner', 'technician', 'receptionist')),
+  unique (profile_id)
+);
+
+create table doctors (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  phone text,
+  clinic_name text
+);
+
+-- ─────────────────────────────────────────────────────────────────
+-- Catalog: categories, tests, packages, media
+-- ─────────────────────────────────────────────────────────────────
+
+create table test_categories (
+  id uuid primary key default gen_random_uuid(),
+  name_en text not null,
+  name_hi text not null,
+  default_image_url text
+);
+
+create table tests (
+  id uuid primary key default gen_random_uuid(),
+  category_id uuid references test_categories (id) on delete set null,
+  name_en text not null,
+  name_hi text not null,
+  sample_type text not null,
+  price numeric(10, 2) not null default 0,
+  turnaround_time text not null default 'Same day',
+  home_collection_available boolean not null default true,
+  normal_range_template jsonb,
+  primary_image_url text,
+  custom_fields jsonb not null default '{}'::jsonb,
+  slug text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create index tests_category_id_idx on tests (category_id);
+
+create table packages (
+  id uuid primary key default gen_random_uuid(),
+  name_en text not null,
+  name_hi text not null,
+  price numeric(10, 2) not null default 0,
+  description_en text,
+  description_hi text,
+  primary_image_url text,
+  custom_fields jsonb not null default '{}'::jsonb,
+  slug text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table package_tests (
+  package_id uuid not null references packages (id) on delete cascade,
+  test_id uuid not null references tests (id) on delete cascade,
+  primary key (package_id, test_id)
+);
+
+-- entity_type: 'test' | 'package' | 'landing'; entity_id is null for landing-page media.
+create table media (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null check (entity_type in ('test', 'package', 'landing')),
+  entity_id uuid,
+  media_type text not null default 'image' check (media_type in ('image', 'video')),
+  url text not null,
+  caption_en text,
+  caption_hi text,
+  sort_order int not null default 0,
+  is_primary boolean not null default false
+);
+
+create index media_entity_idx on media (entity_type, entity_id);
+
+-- ─────────────────────────────────────────────────────────────────
+-- Bookings
+-- ─────────────────────────────────────────────────────────────────
+
+create table bookings (
+  id uuid primary key default gen_random_uuid(),
+  patient_profile_id uuid references profiles (id) on delete set null,
+  guest_name text not null,
+  guest_phone text not null,
+  guest_age text,
+  guest_sex text,
+  collection_type text not null check (collection_type in ('walk_in', 'home_collection')),
+  address text,
+  scheduled_date date,
+  scheduled_slot text,
+  doctor_id uuid references doctors (id) on delete set null,
+  status text not null default 'pending'
+    check (status in ('pending', 'confirmed', 'sample_collected', 'processing', 'report_ready', 'cancelled')),
+  payment_status text not null default 'unpaid' check (payment_status in ('unpaid', 'paid')),
+  total_amount numeric(10, 2) not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index bookings_guest_phone_idx on bookings (guest_phone);
+create index bookings_scheduled_date_idx on bookings (scheduled_date);
+
+create table booking_items (
+  id uuid primary key default gen_random_uuid(),
+  booking_id uuid not null references bookings (id) on delete cascade,
+  test_id uuid references tests (id) on delete set null,
+  package_id uuid references packages (id) on delete set null,
+  price_at_booking numeric(10, 2) not null,
+  constraint booking_items_test_or_package check (
+    (test_id is not null) or (package_id is not null)
+  )
+);
+
+create index booking_items_booking_id_idx on booking_items (booking_id);
+
+-- ─────────────────────────────────────────────────────────────────
+-- Reports
+-- ─────────────────────────────────────────────────────────────────
+
+create table reports (
+  id uuid primary key default gen_random_uuid(),
+  booking_id uuid references bookings (id) on delete set null,
+  sample_no text not null unique,
+  patient_name text not null,
+  age text,
+  sex text,
+  ref_by_doctor text,
+  sample_received_date date,
+  reporting_date date,
+  technician_name text,
+  pdf_url text,
+  status text not null default 'draft' check (status in ('draft', 'final')),
+  created_at timestamptz not null default now()
+);
+
+create table report_results (
+  id uuid primary key default gen_random_uuid(),
+  report_id uuid not null references reports (id) on delete cascade,
+  test_name text not null,
+  result_value text not null,
+  normal_range text,
+  flag text check (flag in ('low', 'normal', 'high'))
+);
+
+create index report_results_report_id_idx on report_results (report_id);
+
+-- ─────────────────────────────────────────────────────────────────
+-- Row Level Security
+-- See docs/database-schema.md for the reasoning behind each policy.
+-- ─────────────────────────────────────────────────────────────────
+
+alter table profiles enable row level security;
+alter table staff enable row level security;
+alter table doctors enable row level security;
+alter table test_categories enable row level security;
+alter table tests enable row level security;
+alter table packages enable row level security;
+alter table package_tests enable row level security;
+alter table media enable row level security;
+alter table bookings enable row level security;
+alter table booking_items enable row level security;
+alter table reports enable row level security;
+alter table report_results enable row level security;
+
+-- Helper: is the current user staff/admin?
+create or replace function is_staff(uid uuid)
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (select 1 from staff where profile_id = uid);
+$$;
+
+-- Catalog & media: public read, staff write.
+create policy "public read test_categories" on test_categories for select using (true);
+create policy "staff write test_categories" on test_categories for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+
+create policy "public read tests" on tests for select using (true);
+create policy "staff write tests" on tests for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+
+create policy "public read packages" on packages for select using (true);
+create policy "staff write packages" on packages for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+
+create policy "public read package_tests" on package_tests for select using (true);
+create policy "staff write package_tests" on package_tests for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+
+create policy "public read media" on media for select using (true);
+create policy "staff write media" on media for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+
+create policy "public read doctors" on doctors for select using (true);
+create policy "staff write doctors" on doctors for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+
+-- Bookings: staff see/manage all; patients see only their own (matched by profile).
+create policy "staff manage bookings" on bookings for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+create policy "patient read own bookings" on bookings for select
+  using (patient_profile_id = auth.uid());
+create policy "guest create booking" on bookings for insert
+  with check (patient_profile_id is null or patient_profile_id = auth.uid());
+
+create policy "staff manage booking_items" on booking_items for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+create policy "patient read own booking_items" on booking_items for select
+  using (
+    exists (
+      select 1 from bookings
+      where bookings.id = booking_items.booking_id
+        and bookings.patient_profile_id = auth.uid()
+    )
+  );
+
+-- Reports: staff see/manage all; patients see only reports linked to their own bookings.
+create policy "staff manage reports" on reports for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+create policy "patient read own reports" on reports for select
+  using (
+    exists (
+      select 1 from bookings
+      where bookings.id = reports.booking_id
+        and bookings.patient_profile_id = auth.uid()
+    )
+  );
+
+create policy "staff manage report_results" on report_results for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+create policy "patient read own report_results" on report_results for select
+  using (
+    exists (
+      select 1 from reports
+      join bookings on bookings.id = reports.booking_id
+      where reports.id = report_results.report_id
+        and bookings.patient_profile_id = auth.uid()
+    )
+  );
+
+-- Profiles & staff: users read their own profile; staff table is staff-only.
+create policy "read own profile" on profiles for select using (id = auth.uid());
+create policy "update own profile" on profiles for update using (id = auth.uid());
+create policy "staff read staff" on staff for select using (is_staff(auth.uid()));
+
+-- ─────────────────────────────────────────────────────────────────
+-- Storage buckets — create via Supabase dashboard or CLI, then apply:
+--   public-media : public read, staff write
+--   reports      : private, signed URLs only (no public policy)
+-- ─────────────────────────────────────────────────────────────────
