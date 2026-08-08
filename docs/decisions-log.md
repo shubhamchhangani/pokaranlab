@@ -4,6 +4,17 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-08 — Added `site_settings` after the first pass hardcoded it.** The first scaffolding
+  pass put contact info/hours/map links in `lib/data/mock-content.ts` as a plain constant, with
+  no DB table and no admin screen behind it — which contradicted the explicit design intent
+  (system-design.md §7, admin screen 5 "Site content": owner edits this without touching code).
+  Fixed by adding a `site_settings` singleton table (see
+  [database-schema.md](./database-schema.md)), `lib/data/site.ts`, and `/admin/settings`.
+  General rule going forward: if a value is specific to *this* lab (not generic app UI text), it
+  needs a DB row + admin form, not a constant — even a "placeholder" one. Also added
+  `tests.description_en/description_hi` columns, which the frontend was already reading
+  (test detail page, SEO metadata, JSON-LD) but the original schema never defined — same root
+  cause, caught while fixing the above.
 - **2026-08-08 — Next.js 16.3, not 14.** `create-next-app@latest` installed 16.3 (App Router,
   React 19). All conventions in this codebase follow 16, not 14 — notably `params`/`searchParams`
   are always `Promise`s, and `PageProps<'/route'>` / `LayoutProps<'/route'>` global helper types

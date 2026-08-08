@@ -1,26 +1,39 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
-import { siteInfo } from "@/lib/data/mock-content";
+import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
+import { getSiteInfo } from "@/lib/data/site";
 import { buttonClasses } from "@/components/ui/Button";
 
-export async function generateMetadata() {
+export async function generateMetadata(props: PageProps<"/[locale]/find-us">) {
+  const { locale } = await props.params;
+  const siteInfo = await getSiteInfo();
+  const address = locale === "hi" ? siteInfo.address_hi : siteInfo.address_en;
+  const hours = locale === "hi" ? siteInfo.hours_hi : siteInfo.hours_en;
+
   return {
     title: `Find Us — ${siteInfo.shortName}, Pokaran`,
-    description: `${siteInfo.address}. ${siteInfo.hours}.`,
+    description: `${address}. ${hours}.`,
   };
 }
 
 export default async function FindUsPage(props: PageProps<"/[locale]/find-us">) {
   const { locale } = await props.params;
   setRequestLocale(locale);
-  const t = await getTranslations("findUs");
+
+  const [t, currentLocale, siteInfo] = await Promise.all([
+    getTranslations("findUs"),
+    getLocale(),
+    getSiteInfo(),
+  ]);
+
+  const address = currentLocale === "hi" ? siteInfo.address_hi : siteInfo.address_en;
+  const hours = currentLocale === "hi" ? siteInfo.hours_hi : siteInfo.hours_en;
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "MedicalOrganization",
-    name: siteInfo.name,
-    address: siteInfo.address,
+    name: siteInfo.name_en,
+    address: siteInfo.address_en,
     telephone: siteInfo.phone,
-    openingHours: siteInfo.hours,
+    openingHours: siteInfo.hours_en,
   };
 
   return (
@@ -36,15 +49,15 @@ export default async function FindUsPage(props: PageProps<"/[locale]/find-us">) 
 
       <div className="mt-8 grid gap-6 overflow-hidden rounded-2xl border border-brand-ink/10 md:grid-cols-2">
         <iframe
-          src={siteInfo.mapsEmbedSrc}
+          src={siteInfo.mapsEmbedUrl}
           className="h-72 w-full border-0 md:h-full"
           loading="lazy"
-          title="Pokaran Lab location"
+          title={siteInfo.shortName + " location"}
         />
         <div className="flex flex-col justify-center gap-3 p-6">
           <div>
             <p className="text-xs text-brand-ink/50">{t("addressLabel")}</p>
-            <p className="text-brand-ink">{siteInfo.address}</p>
+            <p className="text-brand-ink">{address}</p>
           </div>
           <div>
             <p className="text-xs text-brand-ink/50">{t("phoneLabel")}</p>
@@ -52,7 +65,7 @@ export default async function FindUsPage(props: PageProps<"/[locale]/find-us">) 
           </div>
           <div>
             <p className="text-xs text-brand-ink/50">{t("hoursLabel")}</p>
-            <p className="text-brand-ink">{siteInfo.hours}</p>
+            <p className="text-brand-ink">{hours}</p>
           </div>
           <a
             href={siteInfo.mapsDirectionsUrl}

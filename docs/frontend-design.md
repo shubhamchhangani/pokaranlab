@@ -55,9 +55,14 @@ and may not match training data). The two things that trip people up coming from
   system-design.md §6 — keep it that way when adding new keys.
 - Server components: `getTranslations()` / `getTranslations("namespace")` from `next-intl/server`.
 - Client components: `useTranslations()` from `next-intl`.
-- Bilingual **content** (test names, descriptions) is not in the message catalog — it's
-  `name_en`/`name_hi` columns per row (see [database-schema.md](./database-schema.md)), picked
-  at render time via `getLocale()`.
+- Bilingual **content** (test names, descriptions, and site-wide business info — brand name,
+  address, hours) is not in the message catalog — it's `_en`/`_hi` columns per row (see
+  [database-schema.md](./database-schema.md)), picked at render time via `getLocale()`.
+  `messages/*.json` is for app UI chrome only (nav labels, button text, form labels) — string
+  that's the same regardless of which lab is running this codebase. If a string is specific to
+  *this* lab's identity or content, it belongs in the database (`site_settings`, `tests`, etc.)
+  with an admin form to edit it, not in the message catalog or a hardcoded constant — see
+  [decisions-log.md](./decisions-log.md) and [admin-design.md](./admin-design.md).
 
 ## Design tokens
 
@@ -98,10 +103,12 @@ yet — earmarked for the booking flow once it's a real multi-step wizard (see
 
 ## Data layer
 
-`lib/data/tests.ts` (`getTests`, `getTestBySlug`) checks for Supabase env vars and falls back to
-`lib/data/mock-content.ts` when absent — see [decisions-log.md](./decisions-log.md). Pages call
-these functions rather than querying Supabase directly, so the mock fallback is transparent to
-every page that renders test data.
+`lib/data/tests.ts` (`getTests`, `getTestBySlug`) and `lib/data/site.ts` (`getSiteInfo`) check
+for Supabase env vars and fall back to `lib/data/mock-content.ts` when absent — see
+[decisions-log.md](./decisions-log.md). Pages call these functions rather than querying Supabase
+directly, so the mock fallback is transparent to every page that renders test or site data.
+`lib/data/categories.ts` (`getTestCategories`) has no mock fallback — it's only ever called from
+admin screens, which are unreachable until Supabase is configured anyway.
 
 ## Server Actions
 

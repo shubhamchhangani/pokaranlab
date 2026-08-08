@@ -32,6 +32,50 @@ create table doctors (
 );
 
 -- ─────────────────────────────────────────────────────────────────
+-- Site settings — owner-editable contact/hours/map content (system-design.md §7,
+-- admin screen 5 "Site content"). Singleton row: `id` is a boolean primary key defaulting to
+-- `true`, so a second row can never be inserted (violates the PK). Update the one row, never
+-- insert another.
+-- ─────────────────────────────────────────────────────────────────
+
+create table site_settings (
+  id boolean primary key default true check (id),
+  name_en text not null,
+  name_hi text not null,
+  short_name text not null,
+  address_en text not null,
+  address_hi text not null,
+  phone text not null,
+  whatsapp text not null,
+  email text not null,
+  hours_en text not null,
+  hours_hi text not null,
+  maps_embed_url text not null,
+  maps_directions_url text not null,
+  updated_at timestamptz not null default now()
+);
+
+-- Seed the one row so the public site has real content to read immediately after this script
+-- runs — the owner edits these values from /admin/settings, not by editing code or this file.
+insert into site_settings (
+  name_en, name_hi, short_name, address_en, address_hi, phone, whatsapp, email,
+  hours_en, hours_hi, maps_embed_url, maps_directions_url
+) values (
+  'Pokaran Diagnostic & Dr X Ray Center',
+  'पोकरण डायग्नोस्टिक एंड डॉ एक्स-रे सेंटर',
+  'Pokaran Lab',
+  'Near CHC / Govt. Hospital, Jodh Nagar, Pokaran, Dist. Jaisalmer, Rajasthan',
+  'सीएचसी / सरकारी अस्पताल के पास, जोध नगर, पोकरण, जिला जैसलमेर, राजस्थान',
+  '+91-XXXXXXXXXX',
+  '91XXXXXXXXXX',
+  'info@pokaranlab.com',
+  'Mon–Sat: 7:00 AM – 8:00 PM, Sun: 8:00 AM – 1:00 PM',
+  'सोम–शनि: सुबह 7:00 – रात 8:00, रवि: सुबह 8:00 – दोपहर 1:00',
+  'https://www.google.com/maps?q=Pokaran+Jaisalmer+Rajasthan&output=embed',
+  'https://maps.google.com/?q=Pokaran+Jaisalmer+Rajasthan'
+);
+
+-- ─────────────────────────────────────────────────────────────────
 -- Catalog: categories, tests, packages, media
 -- ─────────────────────────────────────────────────────────────────
 
@@ -47,6 +91,8 @@ create table tests (
   category_id uuid references test_categories (id) on delete set null,
   name_en text not null,
   name_hi text not null,
+  description_en text not null default '',
+  description_hi text not null default '',
   sample_type text not null,
   price numeric(10, 2) not null default 0,
   turnaround_time text not null default 'Same day',
@@ -172,6 +218,7 @@ create index report_results_report_id_idx on report_results (report_id);
 alter table profiles enable row level security;
 alter table staff enable row level security;
 alter table doctors enable row level security;
+alter table site_settings enable row level security;
 alter table test_categories enable row level security;
 alter table tests enable row level security;
 alter table packages enable row level security;
@@ -215,6 +262,12 @@ create policy "staff write media" on media for all
 
 create policy "public read doctors" on doctors for select using (true);
 create policy "staff write doctors" on doctors for all
+  using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
+
+-- site_settings is update-only from the app (the seed insert above is the only insert this
+-- table ever needs) — no insert/delete policy, so even staff can't create a second row.
+create policy "public read site_settings" on site_settings for select using (true);
+create policy "staff update site_settings" on site_settings for update
   using (is_staff(auth.uid())) with check (is_staff(auth.uid()));
 
 -- Bookings: staff see/manage all; patients see only their own (matched by profile).

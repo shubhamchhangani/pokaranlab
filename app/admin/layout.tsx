@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Hind } from "next/font/google";
 import { getAdminSession, hasSupabase } from "@/lib/auth/admin";
 import { adminLogout } from "@/lib/actions/auth";
+import { getSiteInfo } from "@/lib/data/site";
 import "../globals.css";
 
 const hind = Hind({ variable: "--font-hind", subsets: ["latin"], weight: ["400", "500", "600"] });
@@ -12,6 +13,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/catalog", label: "Catalog" },
+  { href: "/admin/settings", label: "Site Settings" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -36,15 +38,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   const session = await getAdminSession();
+  const siteInfo = session ? await getSiteInfo() : null;
 
   return (
     <html lang="en" className={`${hind.variable} h-full antialiased`}>
       <body className="flex min-h-full font-sans">
-        {session ? (
+        {session && siteInfo ? (
           <>
             <aside className="hidden w-56 flex-col gap-1 border-r border-brand-ink/10 bg-white p-4 sm:flex">
               <p className="mb-4 px-2 font-display text-lg font-semibold text-brand-indigo">
-                Pokaran Lab
+                {siteInfo.shortName}
               </p>
               {navItems.map((item) => (
                 <a

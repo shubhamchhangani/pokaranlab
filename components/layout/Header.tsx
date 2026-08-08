@@ -1,10 +1,15 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { LanguageToggle } from "@/components/layout/LanguageToggle";
 import { WhatsAppLink } from "@/components/layout/WhatsAppLink";
+import { getSiteInfo } from "@/lib/data/site";
 
 export async function Header() {
-  const t = await getTranslations();
+  const [t, locale, siteInfo] = await Promise.all([
+    getTranslations(),
+    getLocale(),
+    getSiteInfo(),
+  ]);
 
   const navItems = [
     { href: "/tests", label: t("nav.tests") },
@@ -18,7 +23,7 @@ export async function Header() {
     <header className="sticky top-0 z-50 border-b border-brand-ink/10 bg-brand-paper/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link href="/" className="font-display text-xl font-semibold text-brand-indigo">
-          {t("brand.name")}
+          {locale === "hi" ? siteInfo.name_hi : siteInfo.name_en}
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-brand-ink lg:flex">

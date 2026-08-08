@@ -1,7 +1,7 @@
-import { siteInfo } from "@/lib/data/mock-content";
+import { getSiteInfo } from "@/lib/data/site";
 import { buttonClasses } from "@/components/ui/Button";
 
-export function WhatsAppLink({
+export async function WhatsAppLink({
   message,
   className = "",
   children,
@@ -10,6 +10,7 @@ export function WhatsAppLink({
   className?: string;
   children: React.ReactNode;
 }) {
+  const siteInfo = await getSiteInfo();
   const href = `https://wa.me/${siteInfo.whatsapp}?text=${encodeURIComponent(message)}`;
   return (
     <a

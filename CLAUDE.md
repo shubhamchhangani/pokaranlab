@@ -30,10 +30,16 @@ from scratch every session.
   `LayoutProps<'/route'>` helper types, not hand-written prop shapes. See
   `docs/frontend-design.md` and `node_modules/next/dist/docs/` (bundled per-install, treat as
   more current than training data for anything Next.js-specific).
-- **No live Supabase project yet.** `lib/data/tests.ts` and admin pages fall back to
-  `lib/data/mock-content.ts` when `NEXT_PUBLIC_SUPABASE_URL` isn't set, so the site works before
-  Phase 0 setup happens. Don't "fix" this by hardcoding around it — the fallback is intentional
-  until real data is seeded (see `docs/todo.md`).
+- **No live Supabase project yet.** `lib/data/tests.ts`, `lib/data/site.ts`, and admin pages fall
+  back to `lib/data/mock-content.ts` when `NEXT_PUBLIC_SUPABASE_URL` isn't set, so the site works
+  before Phase 0 setup happens. Don't "fix" this by hardcoding around it — the fallback is
+  intentional until real data is seeded (see `docs/todo.md`).
+- **Anything specific to this lab (not generic app UI) is a DB row with an admin form, never a
+  hardcoded constant** — including "placeholder" values. This was gotten wrong once already
+  (contact info/hours lived in a `.ts` file with no way for the owner to edit it — fixed by
+  adding `site_settings`, see `docs/decisions-log.md`). If you're tempted to hardcode a phone
+  number, address, price, or piece of copy that isn't literally the same for every deployment of
+  this codebase, it belongs in Postgres with an `/admin` screen, not in a file.
 - **`/admin` and `/[locale]` are separate root layouts**, each with its own `<html>`/`<body>` —
   this keeps admin routes un-prefixed by locale. See `docs/decisions-log.md`.
 - **Tailwind v4** — design tokens are in `app/globals.css` under `@theme inline`, there is no

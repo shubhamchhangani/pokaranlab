@@ -10,6 +10,9 @@ hand-written to match. Once a real Supabase project exists, regenerate them (see
 
 ## Table groups
 
+- **Site settings** — `site_settings`, a singleton row (see below) for the owner-editable
+  contact/hours/map content that used to be hardcoded — name, address, phone, WhatsApp number,
+  email, hours, Maps embed/directions URLs, all in EN + HI where the content is textual.
 - **Identity** — `profiles` (extends `auth.users`), `staff` (role join table: `owner` |
   `technician` | `receptionist`), `doctors` (referring doctors, free-standing — not linked to
   `auth.users`).
@@ -18,6 +21,19 @@ hand-written to match. Once a real Supabase project exists, regenerate them (see
 - **Bookings** — `bookings`, `booking_items` (a booking item points at either a `test_id` or a
   `package_id`, enforced by a check constraint, never both null).
 - **Reports** — `reports`, `report_results` (one row per test result line).
+
+## Why `site_settings` is a singleton table, not a `.ts` file
+
+Every piece of business content that used to live in `lib/data/mock-content.ts` as a hardcoded
+export — phone number, address, hours, map links — is content the owner needs to change without
+a developer, per system-design.md §7 ("Site content" admin screen). A static TS file can't be
+edited from `/admin/settings`; a DB row can. `site_settings.id` is a `boolean primary key
+default true check (id)`, which makes a second row physically impossible to insert (it would
+violate the primary key) — that's what "singleton table" means here, not a convention someone
+has to remember to follow. `schema.sql` seeds the one row with the same placeholder values the
+old mock file had; the difference is those placeholders are now editable from the admin panel
+the moment Supabase is live, not baked into a deploy. See
+[decisions-log.md](./decisions-log.md).
 
 ## Why `media` is polymorphic instead of a foreign key per table
 
@@ -64,7 +80,8 @@ Everything in `schema.sql` exists as a table today, but the app only reads/write
 
 | Table | App usage today |
 |---|---|
-| `tests`, `test_categories` | Read (falls back to mock data — see [decisions-log.md](./decisions-log.md)) |
+| `site_settings` | Full — public read (Header/Footer/LocationMap/find-us/about), staff update via `/admin/settings` |
+| `tests`, `test_categories` | `tests`: full CRUD via `/admin/catalog` (create/edit/delete), public read (falls back to mock data — see [decisions-log.md](./decisions-log.md)). `test_categories`: read-only (category picker in the test form) — no admin screen to create/edit categories yet |
 | `bookings` | Insert (booking form), read (admin bookings list, dashboard counts) |
 | `packages`, `package_tests` | Schema only — no admin CRUD or public write path yet |
 | `media`, `doctors` | Schema only — no UI reads/writes them yet |

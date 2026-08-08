@@ -4,7 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { buttonClasses } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { getTestBySlug, getTests } from "@/lib/data/tests";
-import { siteInfo } from "@/lib/data/mock-content";
+import { getSiteInfo } from "@/lib/data/site";
 
 export async function generateStaticParams() {
   const tests = await getTests();
@@ -13,7 +13,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata(props: PageProps<"/[locale]/tests/[slug]">) {
   const { slug, locale } = await props.params;
-  const test = await getTestBySlug(slug);
+  const [test, siteInfo] = await Promise.all([getTestBySlug(slug), getSiteInfo()]);
   if (!test) return {};
 
   const name = locale === "hi" ? test.name_hi : test.name_en;
@@ -29,10 +29,11 @@ export default async function TestDetailPage(props: PageProps<"/[locale]/tests/[
   const { slug, locale } = await props.params;
   setRequestLocale(locale);
 
-  const [t, currentLocale, test] = await Promise.all([
+  const [t, currentLocale, test, siteInfo] = await Promise.all([
     getTranslations("tests"),
     getLocale(),
     getTestBySlug(slug),
+    getSiteInfo(),
   ]);
 
   if (!test) notFound();
@@ -48,8 +49,8 @@ export default async function TestDetailPage(props: PageProps<"/[locale]/tests/[
     usedToDiagnose: test.category_en,
     provider: {
       "@type": "MedicalOrganization",
-      name: siteInfo.name,
-      address: siteInfo.address,
+      name: siteInfo.name_en,
+      address: siteInfo.address_en,
       telephone: siteInfo.phone,
     },
   };

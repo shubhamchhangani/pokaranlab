@@ -14,7 +14,7 @@ export async function getTests(): Promise<TestListItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tests")
-    .select("*")
+    .select("*, test_categories(name_en)")
     .order("name_en");
 
   if (error || !data) return mockTests;
@@ -23,13 +23,13 @@ export async function getTests(): Promise<TestListItem[]> {
     slug: t.slug,
     name_en: t.name_en,
     name_hi: t.name_hi,
-    category_en: "",
+    category_en: t.test_categories?.name_en ?? "",
     sample_type: t.sample_type,
     price: t.price,
     turnaround_time: t.turnaround_time,
     home_collection_available: t.home_collection_available,
-    description_en: "",
-    description_hi: "",
+    description_en: t.description_en ?? "",
+    description_hi: t.description_hi ?? "",
   }));
 }
 

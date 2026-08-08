@@ -12,17 +12,29 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - [ ] Create the two Storage buckets (`public-media`, `reports`)
 - [ ] Claim the Google Business Profile
-- [ ] Get the lab's real phone/WhatsApp number, hours, and exact address to replace the
-      placeholders in `lib/data/mock-content.ts` (`siteInfo`)
+- [ ] Get the lab's real phone/WhatsApp number, hours, and exact address — once Supabase is live,
+      set these from `/admin/settings` (not by editing code — see `docs/database-schema.md`
+      `site_settings`)
 
 ## Phase 1 — Core MVP (in progress)
 
 - [ ] Seed real test/package data into Supabase (currently only mock data exists) — once seeded,
-      delete `lib/data/mock-content.ts` and the fallback branches in `lib/data/tests.ts`
+      delete `lib/data/mock-content.ts` and the fallback branches in `lib/data/tests.ts` and
+      `lib/data/site.ts`
 - [ ] Package detail route (`/[locale]/packages/[slug]`) — currently only a list page exists,
       see `docs/decisions-log.md`
-- [ ] Admin catalog: add/edit form (currently read-only), image upload to `public-media`,
-      `custom_fields` editor
+- [x] Admin catalog: add/edit/delete for `tests` (`app/admin/catalog/{new,[id]}`,
+      `lib/actions/catalog.ts`), including a raw-JSON `custom_fields` editor
+- [ ] Admin catalog: same CRUD for `packages` and `test_categories` (currently only `tests` has
+      it — categories can be picked but not created; follow the `tests` pattern, see
+      `docs/admin-design.md`)
+- [ ] Admin catalog: image upload to `public-media` (currently no UI touches the `media` table)
+- [x] Admin site settings screen (`/admin/settings`) editing the `site_settings` singleton row
+- [ ] Landing page hero carousel / gallery photos / video links from system-design.md §6.1 —
+      schema (`media` table) exists, no admin UI or public rendering yet
+- [ ] Verify `revalidatePath` actually busts the cache for statically-generated locale pages
+      after a settings/catalog edit once real Supabase is live — see the caveat in
+      `docs/admin-design.md`
 - [ ] Admin bookings: status update (confirmed → sample collected → processing → report ready),
       date/status filters
 - [ ] Wire booking Server Action to actually resolve `testSlugs` → test/package IDs and insert

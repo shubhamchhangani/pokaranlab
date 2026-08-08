@@ -97,16 +97,25 @@ export const mockTests: MockTest[] = [
   },
 ];
 
-export const siteInfo = {
-  name: "Pokaran Diagnostic & Dr X Ray Center",
+/**
+ * Fallback only — shown before a Supabase project exists. Once `site_settings` is seeded
+ * (supabase/schema.sql does this automatically), the real, admin-editable row from
+ * lib/data/site.ts takes over and this object is never read. Edit the lab's real
+ * details from /admin/settings, not here.
+ */
+export const mockSiteInfo = {
+  name_en: "Pokaran Diagnostic & Dr X Ray Center",
+  name_hi: "पोकरण डायग्नोस्टिक एंड डॉ एक्स-रे सेंटर",
   shortName: "Pokaran Lab",
-  address:
+  address_en:
     "Near CHC / Govt. Hospital, Jodh Nagar, Pokaran, Dist. Jaisalmer, Rajasthan",
+  address_hi: "सीएचसी / सरकारी अस्पताल के पास, जोध नगर, पोकरण, जिला जैसलमेर, राजस्थान",
   phone: "+91-XXXXXXXXXX",
   whatsapp: "91XXXXXXXXXX",
   email: "info@pokaranlab.com",
-  hours: "Mon–Sat: 7:00 AM – 8:00 PM, Sun: 8:00 AM – 1:00 PM",
-  mapsEmbedSrc:
+  hours_en: "Mon–Sat: 7:00 AM – 8:00 PM, Sun: 8:00 AM – 1:00 PM",
+  hours_hi: "सोम–शनि: सुबह 7:00 – रात 8:00, रवि: सुबह 8:00 – दोपहर 1:00",
+  mapsEmbedUrl:
     "https://www.google.com/maps?q=Pokaran+Jaisalmer+Rajasthan&output=embed",
   mapsDirectionsUrl: "https://maps.google.com/?q=Pokaran+Jaisalmer+Rajasthan",
 };

@@ -10,6 +10,26 @@
 export type Database = {
   public: {
     Tables: {
+      site_settings: {
+        Row: {
+          id: true;
+          name_en: string;
+          name_hi: string;
+          short_name: string;
+          address_en: string;
+          address_hi: string;
+          phone: string;
+          whatsapp: string;
+          email: string;
+          hours_en: string;
+          hours_hi: string;
+          maps_embed_url: string;
+          maps_directions_url: string;
+          updated_at: string;
+        };
+        Insert: never; // singleton row, seeded by schema.sql — never inserted from the app
+        Update: Partial<Omit<Database["public"]["Tables"]["site_settings"]["Row"], "id">>;
+      };
       test_categories: {
         Row: {
           id: string;
@@ -26,6 +46,8 @@ export type Database = {
           category_id: string | null;
           name_en: string;
           name_hi: string;
+          description_en: string;
+          description_hi: string;
           sample_type: string;
           price: number;
           turnaround_time: string;
