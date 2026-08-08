@@ -19,6 +19,8 @@ Then, only as needed for the task at hand:
   itself is `supabase/schema.sql`)
 - `docs/frontend-design.md` — routing map, i18n conventions, design tokens, component layout
 - `docs/admin-design.md` — admin screen status
+- `docs/geo-seo.md` — canonical NAP block, real business data found via web research, citation
+  claiming checklist
 
 Reading these first is the point — it's cheaper than re-deriving project state from the diff or
 from scratch every session.
@@ -67,6 +69,10 @@ from scratch every session.
   booking_items in one transaction) for the pattern. Default to `security invoker` (the
   default — don't add `security definer` unless the caller genuinely can't see something they're
   allowed to act on, e.g. the report-lookup case above).
+- **`site_settings` now has the lab's real phone and precise GPS coordinates** (confirmed by the
+  owner, 2026-08-08 — see `docs/geo-seo.md`). Hours and email are still placeholders. Don't
+  overwrite the confirmed fields with new guesses; if you need to change them, ask first — this
+  is the actual business's public contact info, not sample data.
 - **Anything specific to this lab (not generic app UI) is a DB row with an admin form, never a
   hardcoded constant** — including "placeholder" values. This was gotten wrong once already
   (contact info/hours lived in a `.ts` file with no way for the owner to edit it — fixed by

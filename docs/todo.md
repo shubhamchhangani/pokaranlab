@@ -22,10 +22,13 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       Production, confirmed working
 - [ ] Register `pokaranlab.com` and add it as the Vercel project's domain (currently only the
       `*.vercel.app` URL exists)
-- [ ] Claim the Google Business Profile
-- [ ] Get the lab's real phone/WhatsApp number, hours, and exact address, then set them from
-      `/admin/settings` (not by editing code — see `docs/database-schema.md` `site_settings`).
-      Currently still the placeholder values from the `schema.sql` seed.
+- [x] Real phone (`+91-8005518798`) and precise coordinates (from the Google Maps place link)
+      confirmed and set in `site_settings` — see `docs/geo-seo.md`. **Still placeholder:** hours
+      and email.
+- [ ] Claim the Google Business Profile **and Justdial listing** — both already exist under
+      slightly different name variants (neither matching the canonical name), found during
+      research; claiming + correcting them is the priority, not creating new listings. Full
+      checklist in `docs/geo-seo.md`.
 - [ ] Regenerate `lib/types/database.ts` from the live schema (`supabase/README.md` step 5) —
       still the hand-written reference
 
@@ -110,17 +113,34 @@ current rather than exhaustive; it's meant to be read at the start of a session,
 
 ## Phase 3 — SEO buildout
 
-- [ ] Per-test/condition landing pages beyond the current catalog-driven ones — dedicated content
-      for high-search-volume health concerns (fever panel, thyroid, etc.), EN + HI
-- [ ] `MedicalOrganization` + `LocalBusiness` JSON-LD on *every* page, not just find-us
-      (system-design.md §6 says "every page" — currently only find-us and test detail have JSON-LD)
-- [ ] Submit sitemap to Google Search Console once the real domain is live
+- [x] Health-concern landing pages (`/health/[slug]`, `lib/data/health-concerns.ts`) — Fever,
+      Thyroid Problems, Anemia & Weakness, Heart Health, EN + HI, each linked to a real bookable
+      test/package. Code-maintained, not admin-editable — see `docs/decisions-log.md`. Only 4
+      concerns so far; add more as the real catalog grows (each new one needs an existing
+      test/package to link to, so it doesn't dangle).
+- [x] `MedicalOrganization` + `LocalBusiness` JSON-LD on every page —
+      `components/seo/OrganizationJsonLd.tsx`, rendered once in `app/[locale]/layout.tsx`, now
+      includes `geo` coordinates. Test/package detail pages keep their own `MedicalTest` JSON-LD
+      (with a `provider` back-reference) on top of this.
+- [x] About page rewritten as a clean facts list, no more placeholder copy.
+- [ ] Submit sitemap to Google Search Console once the real domain is live — needs the owner's
+      Google account, can't be done from this codebase.
 
 ## Phase 4 — GEO / local authority
 
-- [ ] Reviews request flow (SMS with review link after visit)
-- [ ] Citations: Justdial, Practo, IndiaMART — manual registration, NAP must exactly match the
-      site (system-design.md §11)
+- [x] Review request flow — "Request Review" WhatsApp link on `/admin/bookings` (shown once a
+      booking is `report_ready`), sends the patient a pre-filled message with
+      `site_settings.google_review_url`. Built on WhatsApp instead of SMS per system-design.md
+      §9/§11.7's intent, since there's no SMS gateway (see Housekeeping below).
+      `google_review_url` was constructed from the Google Maps CID and returns HTTP 200, but
+      **hasn't been click-verified to open a working review dialog** — test it once before
+      relying on it for real patients; see `docs/geo-seo.md` for the Google Business Profile
+      fallback if it doesn't work.
+- [ ] Citations: **claim + correct** the existing Google Maps and Justdial listings first (both
+      already exist under different name variants — found during research, see
+      `docs/geo-seo.md`), then register fresh on Practo and IndiaMART. All of this needs the
+      owner's phone for OTP verification, so it's manual, off-this-codebase work — full checklist
+      in `docs/geo-seo.md`.
 
 ## Phase 5 — Growth (deferred, scaffold-only for now)
 

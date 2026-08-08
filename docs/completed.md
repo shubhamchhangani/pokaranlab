@@ -4,6 +4,49 @@ Reverse-chronological log of what's actually built, so a new session doesn't hav
 every file to know the current state. When you finish something from [todo.md](./todo.md), move
 its line here with the date.
 
+## 2026-08-08 — Phase 3 (SEO) + Phase 4 (GEO/local authority)
+
+Started with web research (Google/Justdial) for the lab's real public data — found a real,
+useful result and a real limit, both worth knowing about for next time: Justdial and
+IndiaOnline block automated fetching of their detail pages (JS-rendered, 403/empty response), so
+phone numbers/hours couldn't be scraped from them directly. What research *did* surface: two
+existing citations (Google Maps, Justdial) for the business, each under a slightly different
+name — neither matching the site's canonical name. The user then provided the confirmed phone
+number and a Google Maps place link directly, from which precise coordinates were extracted (the
+`!3d...!4d...` parameters in the URL — an exact building pin, not a town-center approximation).
+
+**Real data now in `site_settings`:** phone `+91-8005518798`, coordinates `26.9225286,
+71.9196006`, a constructed Google review link. Hours and email are still placeholders.
+
+**Phase 3:**
+- `MedicalOrganization`/`LocalBusiness` JSON-LD moved from just find-us/test-detail to every
+  public page (`components/seo/OrganizationJsonLd.tsx` in the root locale layout), now including
+  `geo` coordinates.
+- Four health-concern landing pages (`/health/[slug]`) — Fever, Thyroid Problems, Anemia &
+  Weakness, Heart Health — EN+HI, each linked to a real bookable test/package. General factual
+  content with a "not a diagnosis" disclaimer; deliberately code-maintained rather than
+  admin-editable (see [decisions-log.md](./decisions-log.md)).
+- About page rewritten as a clean facts list instead of placeholder TODO copy.
+- Sitemap updated to include the new health pages.
+
+**Phase 4:**
+- "Request Review" WhatsApp link on `/admin/bookings` (shown once a booking is `report_ready`) —
+  the review-request idea from system-design.md §9/§11.7, built on WhatsApp since there's no SMS
+  gateway, matching the app's existing free-tier-messaging pattern.
+- `docs/geo-seo.md` (new) — canonical NAP block, the two existing-citation findings and why
+  fixing them matters more than adding new ones, and a manual claiming checklist. All citation
+  work needs the owner's phone for OTP verification, so it's necessarily manual and outside this
+  codebase.
+
+**Known gaps, deliberately left for the owner:** claiming/correcting the Google Business Profile
+and Justdial listing, registering on Practo/IndiaMART, submitting the sitemap to Google Search
+Console (needs the owner's Google account) — none of these can be done from this codebase. Also
+the constructed Google review link hasn't been click-verified to actually open a review dialog
+(returns HTTP 200 but that's not proof the JS-driven flow works) — flagged in
+[todo.md](./todo.md) with a fallback if it turns out broken.
+
+Deployed and verified live at https://pokaranlab.vercel.app.
+
 ## 2026-08-08 — Phase 1 complete, Phase 2 (report entry) complete
 
 Everything from Phase 1's remaining backlog plus all of Phase 2, in one pass. Phase 1 is now

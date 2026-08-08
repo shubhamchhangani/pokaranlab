@@ -4,6 +4,25 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-08 — Health-concern pages (`lib/data/health-concerns.ts`) are code-maintained, not a
+  DB table with an admin form.** This looks like it contradicts the "everything admin-editable"
+  rule established earlier the same day (see the `site_settings` entry below) — the distinction:
+  that rule is about *business data* (contact info, prices, catalog items) that changes
+  routinely and has no correctness risk if edited casually. Health-concern content is
+  medical-adjacent editorial writing (symptoms, when-to-test guidance) where a wrong or
+  overclaiming sentence is a real problem, not just a typo — it warrants review before
+  publishing, which a free-text admin field doesn't provide. Revisit as a proper CMS only if the
+  lab wants to publish many more of these themselves; for now, adding one means a developer
+  writes and reviews it, same as any other page copy.
+- **2026-08-08 — Constructed the Google review link from the Maps CID instead of waiting for a
+  claimed Google Business Profile.** `https://search.google.com/local/writereview?placeid=<CID>`
+  (CID = the `0x...:0x...` hex pair from the place URL) returns HTTP 200, which is *some*
+  evidence it's a valid endpoint, but not proof the JS-driven review dialog actually opens —
+  `curl`/WebFetch can't execute the JS to confirm. Shipped anyway (via `site_settings.
+  google_review_url`, admin-editable) because having a probably-working link now is better than
+  no review flow at all, but flagged clearly in `docs/geo-seo.md` and `docs/todo.md` to click-
+  verify before relying on it, with the guaranteed-working fallback (Google Business Profile's
+  own "Get more reviews" short link) noted for once the listing is claimed.
 - **2026-08-08 — `reports.patient_phone` is its own column, not joined through
   `bookings.guest_phone`.** The public report lookup (`verify_report_access()`) needs a phone
   number to check on *every* report, but many reports won't have a `booking_id` at all — a
