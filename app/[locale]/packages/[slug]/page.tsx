@@ -84,7 +84,7 @@ export default async function PackageDetailPage(
       </div>
 
       <Link
-        href={`/book-a-test?test=${pkg.slug}`}
+        href={`/book-a-test?item=package:${pkg.slug}`}
         className={buttonClasses("primary", "mt-8 w-full sm:w-auto")}
       >
         {t("bookThisTest")}

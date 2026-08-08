@@ -4,7 +4,10 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 const bookingSchema = z.object({
-  testSlugs: z.array(z.string()).min(1, "Select at least one test"),
+  // Each item is "test:<slug>" or "package:<slug>" — see components/booking/BookingForm.tsx.
+  items: z
+    .array(z.string().regex(/^(test|package):.+$/))
+    .min(1, "Select at least one test or package"),
   collectionType: z.enum(["walk_in", "home_collection"]),
   address: z.string().optional(),
   scheduledDate: z.string().min(1, "Pick a date"),
@@ -31,7 +34,7 @@ export async function createBooking(
   formData: FormData
 ): Promise<BookingFormState> {
   const raw = {
-    testSlugs: formData.getAll("testSlugs") as string[],
+    items: formData.getAll("items") as string[],
     collectionType: formData.get("collectionType"),
     address: formData.get("address") ?? undefined,
     scheduledDate: formData.get("scheduledDate"),
@@ -58,15 +61,30 @@ export async function createBooking(
     return { status: "success" };
   }
 
+  const testSlugs = data.items.filter((i) => i.startsWith("test:")).map((i) => i.slice(5));
+  const packageSlugs = data.items
+    .filter((i) => i.startsWith("package:"))
+    .map((i) => i.slice(8));
+
   const supabase = await createClient();
 
-  const { data: tests, error: testsError } = await supabase
-    .from("tests")
-    .select("id, slug, price")
-    .in("slug", data.testSlugs);
+  const [testsResult, packagesResult] = await Promise.all([
+    testSlugs.length
+      ? supabase.from("tests").select("id, slug, price").in("slug", testSlugs)
+      : Promise.resolve({ data: [], error: null }),
+    packageSlugs.length
+      ? supabase.from("packages").select("id, slug, price").in("slug", packageSlugs)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
 
-  if (testsError || !tests || tests.length === 0) {
-    return { status: "error", message: "Selected tests are no longer available. Please try again." };
+  const tests = testsResult.data ?? [];
+  const packages = packagesResult.data ?? [];
+
+  if (testsResult.error || packagesResult.error || tests.length + packages.length === 0) {
+    return {
+      status: "error",
+      message: "Selected tests/packages are no longer available. Please try again.",
+    };
   }
 
   // Doctors are staff-managed (RLS: public read, staff write — see supabase/schema.sql), so a
@@ -82,7 +100,9 @@ export async function createBooking(
     doctorId = doctor?.id ?? null;
   }
 
-  const totalAmount = tests.reduce((sum, t) => sum + Number(t.price), 0);
+  const totalAmount =
+    tests.reduce((sum, t) => sum + Number(t.price), 0) +
+    packages.reduce((sum, p) => sum + Number(p.price), 0);
 
   // Generate the id ourselves and skip `.select()` after insert: guest bookings (no
   // patient_profile_id) intentionally have no RLS SELECT policy — anyone with the anon key
@@ -111,13 +131,16 @@ export async function createBooking(
     return { status: "error", message: "Could not save your booking. Please call the lab directly." };
   }
 
-  const { error: itemsError } = await supabase.from("booking_items").insert(
-    tests.map((t) => ({
+  const bookingItems = [
+    ...tests.map((t) => ({ booking_id: bookingId, test_id: t.id, price_at_booking: t.price })),
+    ...packages.map((p) => ({
       booking_id: bookingId,
-      test_id: t.id,
-      price_at_booking: t.price,
-    }))
-  );
+      package_id: p.id,
+      price_at_booking: p.price,
+    })),
+  ];
+
+  const { error: itemsError } = await supabase.from("booking_items").insert(bookingItems);
 
   if (itemsError) {
     // The booking itself is saved and visible to staff even if the line-item breakdown isn't —

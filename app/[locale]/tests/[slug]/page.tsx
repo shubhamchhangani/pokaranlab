@@ -89,7 +89,7 @@ export default async function TestDetailPage(props: PageProps<"/[locale]/tests/[
       </div>
 
       <Link
-        href={`/book-a-test?test=${test.slug}`}
+        href={`/book-a-test?item=test:${test.slug}`}
         className={buttonClasses("primary", "mt-8 w-full sm:w-auto")}
       >
         {t("bookThisTest")}

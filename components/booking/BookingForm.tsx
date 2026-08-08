@@ -6,6 +6,7 @@ import { createBooking, type BookingFormState } from "@/lib/actions/bookings";
 import { FormField, inputClasses } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
 import type { TestListItem } from "@/lib/data/tests";
+import type { PackageListItem } from "@/lib/data/packages";
 
 const initialState: BookingFormState = { status: "idle" };
 
@@ -13,12 +14,15 @@ const slots = ["7:00 AM – 9:00 AM", "9:00 AM – 12:00 PM", "4:00 PM – 6:00 
 
 export function BookingForm({
   tests,
+  packages,
   locale,
-  preselectedSlug,
+  preselectedItem,
 }: {
   tests: TestListItem[];
+  packages: PackageListItem[];
   locale: string;
-  preselectedSlug?: string;
+  /** "test:<slug>" or "package:<slug>" — matches the checkbox `value`s below. */
+  preselectedItem?: string;
 }) {
   const t = useTranslations("booking");
   const [state, formAction, pending] = useActionState(createBooking, initialState);
@@ -39,32 +43,69 @@ export function BookingForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-8">
-      <fieldset className="flex flex-col gap-3">
+      <fieldset className="flex flex-col gap-4">
         <legend className="font-display text-lg font-semibold text-brand-indigo">
           {t("step1Title")}
         </legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {tests.map((test) => (
-            <label
-              key={test.slug}
-              className="flex items-center justify-between gap-3 rounded-lg border border-brand-ink/15 bg-white px-4 py-3 text-sm"
-            >
-              <span className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="testSlugs"
-                  value={test.slug}
-                  defaultChecked={test.slug === preselectedSlug}
-                  className="h-4 w-4 accent-brand-teal"
-                />
-                {locale === "hi" ? test.name_hi : test.name_en}
-              </span>
-              <span className="font-medium text-brand-indigo">₹{test.price}</span>
-            </label>
-          ))}
+
+        {packages.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-brand-ink/50">
+              Packages
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {packages.map((pkg) => (
+                <label
+                  key={pkg.slug}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-brand-ink/15 bg-white px-4 py-3 text-sm"
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      name="items"
+                      value={`package:${pkg.slug}`}
+                      defaultChecked={`package:${pkg.slug}` === preselectedItem}
+                      className="h-4 w-4 accent-brand-teal"
+                    />
+                    {locale === "hi" ? pkg.name_hi : pkg.name_en}
+                  </span>
+                  <span className="font-medium text-brand-indigo">₹{pkg.price}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {packages.length > 0 && (
+            <p className="text-xs font-medium uppercase tracking-wide text-brand-ink/50">
+              Individual Tests
+            </p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {tests.map((test) => (
+              <label
+                key={test.slug}
+                className="flex items-center justify-between gap-3 rounded-lg border border-brand-ink/15 bg-white px-4 py-3 text-sm"
+              >
+                <span className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="items"
+                    value={`test:${test.slug}`}
+                    defaultChecked={`test:${test.slug}` === preselectedItem}
+                    className="h-4 w-4 accent-brand-teal"
+                  />
+                  {locale === "hi" ? test.name_hi : test.name_en}
+                </span>
+                <span className="font-medium text-brand-indigo">₹{test.price}</span>
+              </label>
+            ))}
+          </div>
         </div>
-        {state.fieldErrors?.testSlugs && (
-          <p className="text-sm text-red-600">{state.fieldErrors.testSlugs}</p>
+
+        {state.fieldErrors?.items && (
+          <p className="text-sm text-red-600">{state.fieldErrors.items}</p>
         )}
       </fieldset>
 
@@ -165,7 +206,7 @@ export function BookingForm({
         </div>
 
         {Object.entries(state.fieldErrors ?? {})
-          .filter(([field]) => field !== "testSlugs")
+          .filter(([field]) => field !== "items")
           .map(([field, error]) => (
             <p key={field} className="text-sm text-red-600">
               {error}
