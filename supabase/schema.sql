@@ -31,6 +31,27 @@ create table doctors (
   clinic_name text
 );
 
+-- Every Supabase Auth signup (staff via /admin, or a patient verifying by phone/OTP later)
+-- needs a matching `profiles` row — `staff.profile_id` and RLS's `patient_profile_id` checks
+-- both depend on it existing. Without this trigger, a freshly created auth.users row has no
+-- profiles row and can't be turned into staff.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, full_name, phone)
+  values (new.id, new.email, new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'phone');
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
 -- ─────────────────────────────────────────────────────────────────
 -- Site settings — owner-editable contact/hours/map content (system-design.md §7,
 -- admin screen 5 "Site content"). Singleton row: `id` is a boolean primary key defaulting to

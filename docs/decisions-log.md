@@ -4,6 +4,15 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-08 — Applied schema via `psql` (through `libpq`), not the SQL Editor.** The Supabase
+  CLI's `db query --file` errors on multi-statement files ("cannot insert multiple commands into
+  a prepared statement" — it runs through the extended query protocol, which disallows that).
+  `brew install libpq` gets a working `psql` without a full local Postgres server; that's what
+  actually ran `schema.sql` and `storage.sql`. Documented in `supabase/README.md`.
+- **2026-08-08 — Storage buckets are SQL (`supabase/storage.sql`), not a dashboard click.**
+  Buckets and their RLS policies are created by inserting into `storage.buckets` / `storage.
+  objects` policies directly, same as any other schema change — reproducible and reviewable,
+  instead of a one-off manual step someone has to remember to redo on a new project.
 - **2026-08-08 — Added `site_settings` after the first pass hardcoded it.** The first scaffolding
   pass put contact info/hours/map links in `lib/data/mock-content.ts` as a plain constant, with
   no DB table and no admin screen behind it — which contradicted the explicit design intent

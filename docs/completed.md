@@ -4,6 +4,25 @@ Reverse-chronological log of what's actually built, so a new session doesn't hav
 every file to know the current state. When you finish something from [todo.md](./todo.md), move
 its line here with the date.
 
+## 2026-08-08 — Live Supabase project provisioned
+
+A real Supabase project now exists and is wired up (project ref `tdfbcfuubjeoyutvcpuu`):
+
+- `supabase/schema.sql` and the new `supabase/storage.sql` (buckets + storage RLS, didn't exist
+  before this) both applied via `psql` — see `supabase/README.md` for the exact commands.
+- Added and applied an `on_auth_user_created` trigger (`public.handle_new_user()`) that was
+  missing from the original schema — without it, `staff.profile_id` could never be satisfied for
+  a freshly signed-up Auth user, since nothing populated `public.profiles`. Caught while creating
+  the first owner account, same "schema doesn't actually support what the app needs" class of gap
+  as the `site_settings`/`tests.description_*` fixes earlier the same day.
+- `.env.local` created with the real project URL + anon key (gitignored, not committed).
+- First owner account created and linked: `astrodaksh33@gmail.com`, `staff_role = 'owner'`.
+  `/admin/login` now authenticates against this for real.
+- **The live `tests` table is empty** — no real catalog data seeded yet. The public `/tests` page
+  correctly shows its empty state (mock fallback no longer applies once Supabase env vars are
+  set, per `lib/data/tests.ts`). Seeding real test/package data is the next open item in
+  [todo.md](./todo.md) Phase 1.
+
 ## 2026-08-08 — Site settings table + test catalog CRUD
 
 Fixed a gap from the same day's initial scaffold: contact info/hours/map links were hardcoded in

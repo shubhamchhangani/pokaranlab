@@ -4,17 +4,21 @@ Backlog, organized by the phases in [system-design.md §12](./system-design.md#1
 Check off / move to [completed.md](./completed.md) as work lands — keep this list short and
 current rather than exhaustive; it's meant to be read at the start of a session, not archived.
 
-## Phase 0 — Setup (not started)
+## Phase 0 — Setup (in progress)
 
+- [x] Create the Supabase project, run `supabase/schema.sql` + `supabase/storage.sql` — live as
+      of 2026-08-08, see `supabase/README.md`
+- [x] Set `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`
+- [x] Create the two Storage buckets (`public-media`, `reports`) — via `supabase/storage.sql`
+- [x] First owner staff account + `staff` row — `astrodaksh33@gmail.com`, `staff_role = 'owner'`
 - [ ] Register `pokaranlab.com`
 - [ ] Create the real GitHub repo, push this scaffold, connect Vercel
-- [ ] Create the Supabase project, run `supabase/schema.sql` (see `supabase/README.md`), set
-      `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- [ ] Create the two Storage buckets (`public-media`, `reports`)
 - [ ] Claim the Google Business Profile
-- [ ] Get the lab's real phone/WhatsApp number, hours, and exact address — once Supabase is live,
-      set these from `/admin/settings` (not by editing code — see `docs/database-schema.md`
-      `site_settings`)
+- [ ] Get the lab's real phone/WhatsApp number, hours, and exact address, then set them from
+      `/admin/settings` (not by editing code — see `docs/database-schema.md` `site_settings`).
+      Currently still the placeholder values from the `schema.sql` seed.
+- [ ] Regenerate `lib/types/database.ts` from the live schema (`supabase/README.md` step 5) —
+      still the hand-written reference
 
 ## Phase 1 — Core MVP (in progress)
 
@@ -40,7 +44,6 @@ current rather than exhaustive; it's meant to be read at the start of a session,
 - [ ] Wire booking Server Action to actually resolve `testSlugs` → test/package IDs and insert
       `booking_items` (currently only inserts the `bookings` row with `total_amount: 0` — see
       the TODO comment in `lib/actions/bookings.ts`)
-- [ ] First owner staff account + `staff` row (manual, see `supabase/README.md` step 6)
 
 ## Phase 2 — Reports
 
