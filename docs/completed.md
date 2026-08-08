@@ -4,6 +4,25 @@ Reverse-chronological log of what's actually built, so a new session doesn't hav
 every file to know the current state. When you finish something from [todo.md](./todo.md), move
 its line here with the date.
 
+## 2026-08-08 — First production deploy: https://pokaranlab.vercel.app
+
+Live and publicly reachable. `vercel link` created `shubham-chhanganis-projects/pokaranlab`;
+`NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` set across Production/Preview/
+Development via `vercel env add`. Two real issues surfaced getting here, both fixed and
+documented in [decisions-log.md](./decisions-log.md):
+
+- **Build broke on Vercel** (not locally, where Supabase env vars had never been set during any
+  prior build): `generateStaticParams` in `tests/[slug]/page.tsx` used the cookie-based Supabase
+  client, which throws outside a request context. Fixed with a new cookie-free
+  `lib/supabase/public.ts`, now used by `lib/data/tests.ts` and `lib/data/site.ts`.
+- **Deploy blocked by Vercel's commit-author check** — the local git commit email
+  (`shubham@brightanalyst.com`) didn't match a verified email on the `shubhamchhangani` GitHub
+  account. Fixed by setting `git config user.email` (repo-local, not global) to
+  `shubhamchhangani1998@gmail.com`, which is verified on that account.
+- Vercel's GitHub App is **not** connected to the repo yet (auto-connect during `vercel link`
+  failed) — deploys are still manual (`vercel --prod`), not automatic on push. See
+  [todo.md](./todo.md) Phase 0.
+
 ## 2026-08-08 — Live Supabase project provisioned
 
 A real Supabase project now exists and is wired up (project ref `tdfbcfuubjeoyutvcpuu`):

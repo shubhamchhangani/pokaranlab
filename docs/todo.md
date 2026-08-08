@@ -14,9 +14,9 @@ current rather than exhaustive; it's meant to be read at the start of a session,
 - [x] GitHub repo (`shubhamchhangani/pokaranlab`) — was already connected as `origin` before this
       session touched it (some background sync, not something this session set up — see
       `docs/decisions-log.md`)
-- [x] Vercel project linked and deployed (`shubham-chhanganis-projects/pokaranlab`),
-      `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` set for
-      Production/Preview/Development
+- [x] Vercel project linked and deployed — **live at https://pokaranlab.vercel.app**
+      (`shubham-chhanganis-projects/pokaranlab`), `NEXT_PUBLIC_SUPABASE_URL`/
+      `NEXT_PUBLIC_SUPABASE_ANON_KEY` set for Production/Preview/Development
 - [ ] Vercel's GitHub App isn't connected to the repo yet (auto-connect failed during `vercel
       link` — "Make sure there aren't any typos and that you have access to the repository").
       Without it, deploys are manual (`vercel --prod`) instead of on every push. Fix from the
