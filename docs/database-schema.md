@@ -99,9 +99,9 @@ Everything in `schema.sql` exists as a table today, but the app only reads/write
 | Table | App usage today |
 |---|---|
 | `site_settings` | Full — public read (Header/Footer/LocationMap/find-us/about), staff update via `/admin/settings` |
-| `tests`, `test_categories` | `tests`: full CRUD via `/admin/catalog` (create/edit/delete), public read (falls back to mock data — see [decisions-log.md](./decisions-log.md)). `test_categories`: read-only (category picker in the test form) — no admin screen to create/edit categories yet |
-| `bookings`, `booking_items` | Insert (booking form — resolves selected test slugs to real rows, computes `total_amount`, inserts both tables), read (admin bookings list with status filter, dashboard counts), update (`status` only, via `/admin/bookings`) |
-| `packages`, `package_tests` | Public read + detail page (`/[locale]/packages/[slug]`, shows included tests via `package_tests`) — **no admin CRUD yet**, editing means SQL (`supabase/seed.sql` has the one seeded row) |
+| `tests`, `test_categories` | `tests`: full CRUD via `/admin/catalog`. `test_categories`: add/delete via `/admin/categories` (no rename). Both public read (falls back to mock data — see [decisions-log.md](./decisions-log.md)) |
+| `bookings`, `booking_items` | Insert (booking form — resolves selected tests *and* packages to real rows, computes `total_amount`, inserts both tables), read (admin bookings list with status filter, dashboard counts), update (`status` only, via `/admin/bookings`) |
+| `packages`, `package_tests` | Full CRUD via `/admin/packages`, including a checklist UI for `package_tests` (delete-all-then-insert-selected on save — see [admin-design.md](./admin-design.md)). Public read + detail page (`/[locale]/packages/[slug]`) |
 | `media` | Schema only — no UI reads/writes it yet |
 | `doctors` | Public read only — the booking form can *link* an existing doctor by name, can't create one (staff-write-only by RLS; see [todo.md](./todo.md)) |
 | `reports`, `report_results`, `staff`, `profiles` | Schema + partial (staff/profiles used by admin auth; reports has a read-only lookup stub) |

@@ -41,10 +41,11 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       `generateStaticParams`/JSON-LD, plus shows included tests via `package_tests`
 - [x] Admin catalog: add/edit/delete for `tests` (`app/admin/catalog/{new,[id]}`,
       `lib/actions/catalog.ts`), including a raw-JSON `custom_fields` editor
-- [ ] Admin catalog: same CRUD for `packages` and `test_categories` (currently only `tests` has
-      it — categories can be picked but not created; follow the `tests` pattern, see
-      `docs/admin-design.md`). `packages` now has real public read/detail pages (see above) but
-      still no admin write path — editing the Fever Panel means SQL, not the admin panel yet.
+- [x] Admin catalog: CRUD for `packages` (`app/admin/packages/{new,[id]}`,
+      `lib/actions/packages.ts`, `components/admin/PackageForm.tsx`) including a
+      `package_tests` linking checklist (replace-all-on-save). `test_categories`: add/delete
+      (`app/admin/categories`, `lib/actions/categories.ts`) — no edit/rename yet, only
+      create-and-delete, since categories rarely change.
 - [ ] Admin catalog: image upload to `public-media` (currently no UI touches the `media` table)
 - [x] Admin site settings screen (`/admin/settings`) editing the `site_settings` singleton row
 - [ ] Landing page hero carousel / gallery photos / video links from system-design.md §6.1 —
@@ -54,12 +55,10 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       is live; see the caveat in `docs/admin-design.md`
 - [x] Admin bookings: status update via `components/admin/BookingStatusSelect.tsx` +
       `lib/actions/admin-bookings.ts`, plus a status filter on `/admin/bookings`
-- [x] Wire booking Server Action to resolve `testSlugs` → test IDs and insert `booking_items`,
-      with a real computed `total_amount` (was hardcoded to 0). **Packages can't be booked yet**
-      — `BookingForm` only offers individual tests, not packages, so the "Book This Test" button
-      on a package detail page links to `/book-a-test?test=<package-slug>`, which won't
-      preselect anything since it only matches test slugs. Extending the form to accept
-      packages is the natural next step here.
+- [x] Wire booking Server Action to resolve selected items (tests *and* packages, unified as
+      `test:<slug>`/`package:<slug>`) to real rows and insert `booking_items` with a real
+      computed `total_amount` (was hardcoded to 0, and packages couldn't be booked at all before
+      this — the "Book This Test" link on a package page was a dead end).
 - [ ] Make booking creation atomic — `createBooking` currently inserts `bookings` then
       `booking_items` as two separate calls; if the second fails, the booking is saved without
       its line items (logged as a known gap in the code, not silently wrong, but not ideal).

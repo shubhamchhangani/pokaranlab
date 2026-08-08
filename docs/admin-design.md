@@ -25,7 +25,7 @@ below.
 | 1 | Dashboard | Built — `app/admin/page.tsx`. Two live counts (today's bookings, pending reports) via Supabase `count`. No revenue view. |
 | 2 | Bookings | Built — `app/admin/bookings/page.tsx`. Status filter + per-row status update (`components/admin/BookingStatusSelect.tsx`, `lib/actions/admin-bookings.ts`). No date filter yet. |
 | 3 | Report entry | **Not built.** Highest-value screen per system-design.md §7 — do this before anything else in Phase 2. |
-| 4 | Catalog management | **Partial.** `tests` have full create/edit/delete (`app/admin/catalog/{new,[id]}/page.tsx`, `lib/actions/catalog.ts`), including a raw-JSON `custom_fields` editor. **`packages` and `test_categories` have no admin CRUD yet** — categories can only be picked (not created) from the test form; do these next, same pattern as `tests`. No image upload yet (`media` table is schema-only). |
+| 4 | Catalog management | **Mostly built.** `tests` (`app/admin/catalog/{new,[id]}`) and `packages` (`app/admin/packages/{new,[id]}`, includes a `package_tests` linking checklist) both have full create/edit/delete + raw-JSON `custom_fields` editors. `test_categories` (`app/admin/categories`) has add/delete but no rename. **Still missing:** image upload (`media` table is schema-only, no UI touches it). |
 | 5 | Site content | **Partial, contact info only.** `app/admin/settings/page.tsx` + `lib/actions/settings.ts` edit the `site_settings` singleton row (name, address, phone, WhatsApp, email, hours, map links — see [database-schema.md](./database-schema.md)). Hero carousel / gallery photos / video links from system-design.md §6.1 (the `media` table, `entity_type='landing'`) are **not built** — the landing page hero is still static copy, not carousel images. |
 | 6 | Staff management | **Not built.** |
 
@@ -33,10 +33,13 @@ below.
 
 - Follow the "mobile-first, minimal taps" principle from system-design.md §7 — staff use this
   between patients on a phone, not at a desk.
-- Follow the pattern `lib/actions/catalog.ts` + `app/admin/catalog/{new,[id]}` set for `tests`
-  when adding `packages`/`test_categories` CRUD — same shape: a `zod`-validated Server Action
-  that checks `getAdminSession()` first, a shared form component under `components/admin/`, and
-  `revalidatePath` on both the admin list and `/` after writes.
+- The `tests` CRUD pattern (`lib/actions/catalog.ts` + `app/admin/catalog/{new,[id]}`) was
+  reused as-is for `packages` (`lib/actions/packages.ts`) and `test_categories`
+  (`lib/actions/categories.ts`) — same shape: a `zod`-validated Server Action that checks
+  `getAdminSession()` first, a form component under `components/admin/`, `revalidatePath` on
+  both the admin list and `/` after writes. Follow it again for `media`/staff management.
+  For a many-to-many join (`package_tests`), the simplest correct approach at this catalog size
+  is delete-all-then-insert-selected on every save, not diffing — see `upsertPackage`.
 - **Don't hardcode business content in `.ts` files again.** `lib/data/mock-content.ts` exists
   *only* as the pre-Supabase fallback (see [decisions-log.md](./decisions-log.md)) — anything the
   owner should be able to change is a DB row with an admin form, not a constant. This was gotten
@@ -49,7 +52,8 @@ below.
   [database-schema.md](./database-schema.md) for the full gotcha — this bit the guest booking
   flow once already and will bite report entry's phone/sample lookup (Phase 2) the same way if
   not accounted for up front.
-- `updateSiteSettings` and `upsertTest`/`deleteTest` call `revalidatePath` after writing, but the
+- `updateSiteSettings`, `upsertTest`/`deleteTest`, and `upsertPackage`/`deletePackage` all call
+  `revalidatePath` after writing, but the
   locale pages that read this data are statically generated (`generateStaticParams` in
   `app/[locale]/layout.tsx` and `tests/[slug]/page.tsx`) — verify a settings/catalog change
   actually shows up on the public site without a full redeploy once a real Supabase project

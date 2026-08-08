@@ -4,6 +4,14 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-08 — Booking form items are encoded as `"test:<slug>"` / `"package:<slug>"`
+  strings, not two separate arrays.** Once packages needed to be bookable too, the booking form
+  had to select from two different tables in one list. A single `items` field with a type
+  prefix (parsed server-side in `createBooking`) was simpler than parallel `testSlugs`/
+  `packageSlugs` arrays plus separate checkbox `name`s — one field to validate, one field to
+  read with `formData.getAll`, and the preselect query param (`?item=test:<slug>` or
+  `?item=package:<slug>`) follows the same shape. See `components/booking/BookingForm.tsx` and
+  `lib/actions/bookings.ts`.
 - **2026-08-08 — Guest inserts need a `security definer` helper, not an inline RLS subquery.**
   Wiring up real `booking_items` inserts for guest bookings surfaced two layered RLS bugs, both
   only visible when testing as the actual `anon` role (`psql` runs as the `postgres` superuser,

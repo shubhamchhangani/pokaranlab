@@ -4,6 +4,28 @@ Reverse-chronological log of what's actually built, so a new session doesn't hav
 every file to know the current state. When you finish something from [todo.md](./todo.md), move
 its line here with the date.
 
+## 2026-08-08 — Packages/categories admin CRUD, packages are bookable, deployed
+
+- Booking form now offers packages alongside individual tests (unified `test:<slug>`/
+  `package:<slug>` item encoding — see [decisions-log.md](./decisions-log.md)). Fixes the
+  package detail page's "Book This Test" link, which previously pointed at a query param the
+  form didn't understand and preselected nothing.
+- Full admin CRUD for `packages` (`/admin/packages`), including a checklist UI for linking
+  `package_tests` (delete-all-then-insert-selected on save). Add/delete for `test_categories`
+  (`/admin/categories`).
+- Verified every new write path (booking a package as a guest, staff creating/deleting a
+  package, linking `package_tests`, staff creating/deleting a category) against the live DB
+  using the real anon-key client and the real owner login (`astrodaksh33@gmail.com`) — not the
+  `postgres` superuser connection, which would have missed any RLS gap the same way it missed
+  the `booking_items` ones earlier today. This also gave the first real confirmation that
+  `/admin` login works end-to-end with actual Supabase Auth credentials, not just via direct DB
+  inspection.
+- Deployed and verified live at https://pokaranlab.vercel.app.
+
+**Still open:** `packages`/`bookings` writes aren't atomic; `test_categories` has no rename;
+image upload to `public-media` isn't wired to any UI; referring-doctor free text still can't
+create a new `doctors` row. All in [todo.md](./todo.md).
+
 ## 2026-08-08 — Real catalog data, working booking flow, admin bookings status
 
 - Seeded the live catalog (`supabase/seed.sql`): 5 tests + 1 package (Fever Panel, linked to CBC
