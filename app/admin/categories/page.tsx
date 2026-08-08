@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getAdminSession } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { deleteCategory } from "@/lib/actions/categories";
@@ -11,7 +12,7 @@ export default async function AdminCategoriesPage() {
   const supabase = await createClient();
   const { data: categories } = await supabase
     .from("test_categories")
-    .select("id, name_en, name_hi")
+    .select("id, name_en, name_hi, default_image_url")
     .order("name_en");
 
   return (
@@ -26,6 +27,7 @@ export default async function AdminCategoriesPage() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-brand-ink/10 text-brand-ink/60">
             <tr>
+              <th className="px-4 py-3">Photo</th>
               <th className="px-4 py-3">English</th>
               <th className="px-4 py-3">Hindi</th>
               <th className="px-4 py-3" />
@@ -34,9 +36,27 @@ export default async function AdminCategoriesPage() {
           <tbody>
             {(categories ?? []).map((category) => (
               <tr key={category.id} className="border-b border-brand-ink/5 last:border-0">
+                <td className="px-4 py-3">
+                  {category.default_image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={category.default_image_url}
+                      alt=""
+                      className="h-8 w-8 rounded object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs text-brand-ink/40">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">{category.name_en}</td>
                 <td className="px-4 py-3">{category.name_hi}</td>
                 <td className="px-4 py-3 text-right">
+                  <Link
+                    href={`/admin/categories/${category.id}`}
+                    className="mr-4 text-brand-teal hover:underline"
+                  >
+                    Edit
+                  </Link>
                   <form action={deleteCategory} className="inline">
                     <input type="hidden" name="id" value={category.id} />
                     <button className="text-red-600 hover:underline">Delete</button>
@@ -46,7 +66,7 @@ export default async function AdminCategoriesPage() {
             ))}
             {(!categories || categories.length === 0) && (
               <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-brand-ink/50">
+                <td colSpan={4} className="px-4 py-8 text-center text-brand-ink/50">
                   No categories yet.
                 </td>
               </tr>

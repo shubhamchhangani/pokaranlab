@@ -3,6 +3,7 @@ import Image from "next/image";
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { buttonClasses } from "@/components/ui/Button";
+import { PhotoGallery } from "@/components/ui/PhotoGallery";
 import { getPackageBySlug, getPackages } from "@/lib/data/packages";
 import { getSiteInfo } from "@/lib/data/site";
 
@@ -72,6 +73,8 @@ export default async function PackageDetailPage(
           className="mb-6 h-56 w-full rounded-2xl object-cover"
         />
       )}
+
+      <PhotoGallery media={pkg.gallery} locale={currentLocale} />
 
       <h1 className="font-display text-3xl font-semibold text-brand-indigo">{name}</h1>
       <p className="mt-4 text-brand-ink/80">{description}</p>

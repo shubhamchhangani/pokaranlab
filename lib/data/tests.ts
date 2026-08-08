@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/public";
 import { mockTests, type MockTest } from "@/lib/data/mock-content";
+import { getEntityMedia, type MediaItem } from "@/lib/data/media";
 
 const hasSupabase = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 export type TestListItem = MockTest;
+export type TestDetail = TestListItem & { gallery: MediaItem[] };
 
 /**
  * Returns mock data until NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY are set — see .env.example.
@@ -19,12 +21,13 @@ export async function getTests(): Promise<TestListItem[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("tests")
-    .select("*, test_categories(name_en)")
+    .select("*, test_categories(name_en, default_image_url)")
     .order("name_en");
 
   if (error || !data) return mockTests;
 
   return data.map((t) => ({
+    id: t.id,
     slug: t.slug,
     name_en: t.name_en,
     name_hi: t.name_hi,
@@ -35,11 +38,17 @@ export async function getTests(): Promise<TestListItem[]> {
     home_collection_available: t.home_collection_available,
     description_en: t.description_en ?? "",
     description_hi: t.description_hi ?? "",
-    primary_image_url: t.primary_image_url ?? null,
+    // Falls back to the test's category default photo when the test has no photo of its own —
+    // see docs/database-schema.md ("category default images").
+    primary_image_url: t.primary_image_url ?? t.test_categories?.default_image_url ?? null,
   }));
 }
 
-export async function getTestBySlug(slug: string): Promise<TestListItem | null> {
+export async function getTestBySlug(slug: string): Promise<TestDetail | null> {
   const tests = await getTests();
-  return tests.find((t) => t.slug === slug) ?? null;
+  const test = tests.find((t) => t.slug === slug);
+  if (!test) return null;
+
+  const gallery = test.id ? await getEntityMedia("test", test.id) : [];
+  return { ...test, gallery };
 }

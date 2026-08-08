@@ -4,6 +4,7 @@ import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { buttonClasses } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { PhotoGallery } from "@/components/ui/PhotoGallery";
 import { getTestBySlug, getTests } from "@/lib/data/tests";
 import { getSiteInfo } from "@/lib/data/site";
 
@@ -72,6 +73,8 @@ export default async function TestDetailPage(props: PageProps<"/[locale]/tests/[
           className="mb-6 h-56 w-full rounded-2xl object-cover"
         />
       )}
+
+      <PhotoGallery media={test.gallery} locale={currentLocale} />
 
       <span className="text-xs font-medium uppercase tracking-wide text-brand-teal">
         {test.category_en}

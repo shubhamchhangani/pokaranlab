@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/public";
 import { mockPackages } from "@/lib/data/mock-content";
+import { getEntityMedia, type MediaItem } from "@/lib/data/media";
 
 const hasSupabase = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -17,6 +18,7 @@ export type PackageListItem = {
 
 export type PackageDetail = PackageListItem & {
   includedTests: { slug: string; name_en: string; name_hi: string }[];
+  gallery: MediaItem[];
 };
 
 const normalizedMockPackages: PackageListItem[] = mockPackages.map((p) => ({
@@ -48,7 +50,12 @@ export async function getPackageBySlug(slug: string): Promise<PackageDetail | nu
   if (!hasSupabase) {
     const pkg = mockPackages.find((p) => p.slug === slug);
     if (!pkg) return null;
-    return { ...pkg, primary_image_url: pkg.primary_image_url ?? null, includedTests: [] };
+    return {
+      ...pkg,
+      primary_image_url: pkg.primary_image_url ?? null,
+      includedTests: [],
+      gallery: [],
+    };
   }
 
   const supabase = createClient();
@@ -62,6 +69,8 @@ export async function getPackageBySlug(slug: string): Promise<PackageDetail | nu
 
   type IncludedTestRow = { tests: { slug: string; name_en: string; name_hi: string } | null };
 
+  const gallery = await getEntityMedia("package", data.id);
+
   return {
     slug: data.slug,
     name_en: data.name_en,
@@ -73,5 +82,6 @@ export async function getPackageBySlug(slug: string): Promise<PackageDetail | nu
     includedTests: ((data.package_tests ?? []) as IncludedTestRow[])
       .map((pt) => pt.tests)
       .filter((t): t is { slug: string; name_en: string; name_hi: string } => t !== null),
+    gallery,
   };
 }

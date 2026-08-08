@@ -1,8 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getEntityMedia } from "@/lib/data/media";
 import { deletePackage } from "@/lib/actions/packages";
 import { PackageForm } from "@/components/admin/PackageForm";
+import { MediaGalleryForm } from "@/components/admin/MediaGalleryForm";
 
 export default async function EditPackagePage({
   params,
@@ -15,10 +17,11 @@ export default async function EditPackagePage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: pkg }, { data: tests }, { data: links }] = await Promise.all([
+  const [{ data: pkg }, { data: tests }, { data: links }, gallery] = await Promise.all([
     supabase.from("packages").select("*").eq("id", id).maybeSingle(),
     supabase.from("tests").select("id, name_en").order("name_en"),
     supabase.from("package_tests").select("test_id").eq("package_id", id),
+    getEntityMedia("package", id),
   ]);
 
   if (!pkg) notFound();
@@ -40,6 +43,17 @@ export default async function EditPackagePage({
             includedTestIds: (links ?? []).map((l) => l.test_id),
           }}
         />
+      </div>
+
+      <div className="mt-10">
+        <h2 className="font-display text-lg font-semibold text-brand-indigo">Photo Gallery</h2>
+        <p className="mt-1 text-sm text-brand-ink/60">
+          Extra photos shown on this package&rsquo;s public page, separate from the primary image
+          above.
+        </p>
+        <div className="mt-4">
+          <MediaGalleryForm entityType="package" entityId={pkg.id} media={gallery} />
+        </div>
       </div>
     </div>
   );

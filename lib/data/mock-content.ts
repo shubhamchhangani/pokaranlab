@@ -5,6 +5,7 @@
  */
 
 export type MockTest = {
+  id?: string;
   slug: string;
   name_en: string;
   name_hi: string;
