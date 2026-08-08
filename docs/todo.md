@@ -11,8 +11,18 @@ current rather than exhaustive; it's meant to be read at the start of a session,
 - [x] Set `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`
 - [x] Create the two Storage buckets (`public-media`, `reports`) — via `supabase/storage.sql`
 - [x] First owner staff account + `staff` row — `astrodaksh33@gmail.com`, `staff_role = 'owner'`
-- [ ] Register `pokaranlab.com`
-- [ ] Create the real GitHub repo, push this scaffold, connect Vercel
+- [x] GitHub repo (`shubhamchhangani/pokaranlab`) — was already connected as `origin` before this
+      session touched it (some background sync, not something this session set up — see
+      `docs/decisions-log.md`)
+- [x] Vercel project linked and deployed (`shubham-chhanganis-projects/pokaranlab`),
+      `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` set for
+      Production/Preview/Development
+- [ ] Vercel's GitHub App isn't connected to the repo yet (auto-connect failed during `vercel
+      link` — "Make sure there aren't any typos and that you have access to the repository").
+      Without it, deploys are manual (`vercel --prod`) instead of on every push. Fix from the
+      Vercel dashboard → Project Settings → Git, or re-run `vercel git connect`.
+- [ ] Register `pokaranlab.com` and add it as the Vercel project's domain (currently only the
+      `*.vercel.app` URL exists)
 - [ ] Claim the Google Business Profile
 - [ ] Get the lab's real phone/WhatsApp number, hours, and exact address, then set them from
       `/admin/settings` (not by editing code — see `docs/database-schema.md` `site_settings`).

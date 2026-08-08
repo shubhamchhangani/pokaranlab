@@ -4,6 +4,24 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-08 — `lib/data/tests.ts` and `lib/data/site.ts` use a cookie-free Supabase client.**
+  First Vercel deploy failed: `generateStaticParams` in `tests/[slug]/page.tsx` called `getTests()`,
+  which used the cookie-based `lib/supabase/server.ts` client — but `generateStaticParams` runs
+  at build time, outside any request, so `next/headers`'s `cookies()` throws. This never
+  surfaced locally because every earlier `npm run build` ran with Supabase env vars unset (mock
+  fallback, no Supabase client ever constructed). Fixed by adding `lib/supabase/public.ts`, a
+  plain anon-key client with no cookie handling, and switching `tests`/`site_settings` reads to
+  it — safe because both are public-read under RLS regardless of session. Keep using
+  `lib/supabase/server.ts` (cookie-based) for anything that's actually session-scoped: admin
+  auth, patient-scoped bookings/reports, and all the `lib/actions/*` writes.
+- **2026-08-08 — `origin` remote already existed and was already in sync before this session ran
+  any `git push`.** `git remote -v` showed `github.com/shubhamchhangani/pokaranlab` already
+  configured, and `git ls-remote origin` matched the local `HEAD` exactly, for commits this
+  session made but never explicitly pushed. Apparent explanation: some background sync in this
+  environment (not `gh`, which isn't installed) mirrors the local repo to GitHub automatically.
+  Not verified further — flagging so a future session doesn't assume it needs to create the
+  GitHub repo from scratch, and doesn't assume the reverse either (that all future commits
+  auto-push) without checking `git status` for real.
 - **2026-08-08 — Applied schema via `psql` (through `libpq`), not the SQL Editor.** The Supabase
   CLI's `db query --file` errors on multi-statement files ("cannot insert multiple commands into
   a prepared statement" — it runs through the extended query protocol, which disallows that).
