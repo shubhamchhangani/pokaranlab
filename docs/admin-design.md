@@ -23,7 +23,7 @@ below.
 | # | Screen | Status |
 |---|---|---|
 | 1 | Dashboard | Built — `app/admin/page.tsx`. Two live counts (today's bookings, pending reports) via Supabase `count`. No revenue view. |
-| 2 | Bookings | Built — `app/admin/bookings/page.tsx`. Read-only list, no filter/status-update UI yet. |
+| 2 | Bookings | Built — `app/admin/bookings/page.tsx`. Status filter + per-row status update (`components/admin/BookingStatusSelect.tsx`, `lib/actions/admin-bookings.ts`). No date filter yet. |
 | 3 | Report entry | **Not built.** Highest-value screen per system-design.md §7 — do this before anything else in Phase 2. |
 | 4 | Catalog management | **Partial.** `tests` have full create/edit/delete (`app/admin/catalog/{new,[id]}/page.tsx`, `lib/actions/catalog.ts`), including a raw-JSON `custom_fields` editor. **`packages` and `test_categories` have no admin CRUD yet** — categories can only be picked (not created) from the test form; do these next, same pattern as `tests`. No image upload yet (`media` table is schema-only). |
 | 5 | Site content | **Partial, contact info only.** `app/admin/settings/page.tsx` + `lib/actions/settings.ts` edit the `site_settings` singleton row (name, address, phone, WhatsApp, email, hours, map links — see [database-schema.md](./database-schema.md)). Hero carousel / gallery photos / video links from system-design.md §6.1 (the `media` table, `entity_type='landing'`) are **not built** — the landing page hero is still static copy, not carousel images. |
@@ -42,6 +42,13 @@ below.
   owner should be able to change is a DB row with an admin form, not a constant. This was gotten
   wrong once already (`site_settings` didn't exist in the first pass); don't repeat it for the
   remaining screens (media/hero content, staff roles, etc.).
+- If a new Server Action needs a policy that checks something in a *second* RLS-protected table
+  (not just `is_staff`), don't write an inline subquery — it silently inherits the caller's RLS
+  visibility into that table and will misbehave for non-staff callers. Wrap it in a `security
+  definer` SQL function instead, same as `is_staff()`/`can_access_booking()` in `schema.sql`. See
+  [database-schema.md](./database-schema.md) for the full gotcha — this bit the guest booking
+  flow once already and will bite report entry's phone/sample lookup (Phase 2) the same way if
+  not accounted for up front.
 - `updateSiteSettings` and `upsertTest`/`deleteTest` call `revalidatePath` after writing, but the
   locale pages that read this data are statically generated (`generateStaticParams` in
   `app/[locale]/layout.tsx` and `tests/[slug]/page.tsx`) — verify a settings/catalog change

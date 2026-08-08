@@ -4,6 +4,36 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-08 — Guest inserts need a `security definer` helper, not an inline RLS subquery.**
+  Wiring up real `booking_items` inserts for guest bookings surfaced two layered RLS bugs, both
+  only visible when testing as the actual `anon` role (`psql` runs as the `postgres` superuser,
+  which bypasses RLS entirely — testing against the live DB with a plain Supabase JS client using
+  the anon key, same as the app, was what actually caught these):
+  1. `.insert(row).select()` on `bookings` failed RLS for a guest booking, even though the INSERT
+     itself was allowed. Cause: returning the inserted row requires the table's SELECT policy to
+     also pass, and there's intentionally no policy letting guests read `bookings` back (that
+     would leak every guest's name/phone/address to anyone with the anon key). Fixed by
+     generating the booking's `id` with `crypto.randomUUID()` client-side and inserting without
+     `.select()`, so nothing needs to read the row back.
+  2. The `booking_items` insert policy checked booking ownership via `exists (select 1 from
+     bookings where id = booking_items.booking_id and ...)` — but that subquery reads
+     `bookings`, which has its own RLS, so the same guest hits the same invisibility problem one
+     level down: a plain subquery cannot see the row it's checking against, so the EXISTS is
+     always false for guests. Fixed with `can_access_booking()`, a `security definer` function
+     (same mechanism as the existing `is_staff()`) that runs with the function owner's
+     privileges and so isn't subject to the caller's RLS on `bookings`.
+  General rule for any future RLS policy that references a second table: if that table also has
+  RLS enabled, an inline subquery against it inherits the *caller's* visibility into that table,
+  not "can this row objectively be reached from here." Wrap the check in a `security definer`
+  function instead. Test as the actual `anon`/`authenticated` role (a real anon-key client, or
+  `SET ROLE anon` in `psql`), never as the `postgres` superuser, which silently bypasses RLS and
+  would have let this ship.
+- **2026-08-08 — `packages` got its own mock fallback and data layer, split out of the `tests`
+  mock hack.** The original scaffold's `mockTests` included a "Fever Panel" entry with
+  `category_en: "Package"` as a placeholder, since there was no real `packages` UI yet. Now that
+  `lib/data/packages.ts` and the package detail route exist, that entry moved to
+  `mockPackages`/`MockPackage` in `lib/data/mock-content.ts`, matching the real `packages` +
+  `package_tests` schema instead of pretending to be a test.
 - **2026-08-08 — `lib/data/tests.ts` and `lib/data/site.ts` use a cookie-free Supabase client.**
   First Vercel deploy failed: `generateStaticParams` in `tests/[slug]/page.tsx` called `getTests()`,
   which used the cookie-based `lib/supabase/server.ts` client — but `generateStaticParams` runs

@@ -30,10 +30,25 @@ from scratch every session.
   `LayoutProps<'/route'>` helper types, not hand-written prop shapes. See
   `docs/frontend-design.md` and `node_modules/next/dist/docs/` (bundled per-install, treat as
   more current than training data for anything Next.js-specific).
-- **No live Supabase project yet.** `lib/data/tests.ts`, `lib/data/site.ts`, and admin pages fall
-  back to `lib/data/mock-content.ts` when `NEXT_PUBLIC_SUPABASE_URL` isn't set, so the site works
-  before Phase 0 setup happens. Don't "fix" this by hardcoding around it — the fallback is
-  intentional until real data is seeded (see `docs/todo.md`).
+- **A live Supabase project exists** (since 2026-08-08) and the site is deployed at
+  https://pokaranlab.vercel.app, auto-deploying from GitHub `main`. `.env.local` has the real
+  credentials (gitignored). `lib/data/tests.ts`, `lib/data/site.ts`, and admin pages still fall
+  back to `lib/data/mock-content.ts` when `NEXT_PUBLIC_SUPABASE_URL` isn't set (e.g. a fresh
+  clone without `.env.local`) — keep that fallback, don't remove it just because a live project
+  now exists elsewhere.
+- **Any new RLS policy that checks a second RLS-protected table needs a `security definer`
+  helper function, never an inline subquery.** An inline subquery inherits the *caller's* RLS
+  visibility into that second table, which silently breaks for non-staff callers (a guest can't
+  see their own booking under `bookings`' RLS, so a subquery checking "does this booking belong
+  to a guest" from within `booking_items`'s policy always evaluated false). Copy the
+  `can_access_booking()` pattern in `supabase/schema.sql` for future cross-table checks — see
+  `docs/database-schema.md` for the full writeup. Test any RLS change as the actual
+  `anon`/`authenticated` role (`SET ROLE anon` in `psql`, or a real anon-key client) — testing
+  via the `postgres` superuser connection bypasses RLS entirely and will not catch this.
+- **When changing `supabase/schema.sql`, also apply the diff to the live DB** — it's not
+  automatically synced. `supabase/README.md` has the `psql` command; apply just the new/changed
+  statements directly (don't re-run the whole file against a non-empty DB, most `create table`
+  statements aren't idempotent).
 - **Anything specific to this lab (not generic app UI) is a DB row with an admin form, never a
   hardcoded constant** — including "placeholder" values. This was gotten wrong once already
   (contact info/hours lived in a `.ts` file with no way for the owner to edit it — fixed by

@@ -54,29 +54,80 @@ export async function createBooking(
 
   const data = parsed.data;
 
-  // TODO(Phase 1): once Supabase project exists, look up test/package ids by slug,
-  // insert into `bookings` + `booking_items`, then trigger the SMS confirmation (Section 9 of
-  // docs/system-design.md). Until then this is a no-op so the flow is demoable end-to-end.
-  if (hasSupabase) {
-    const supabase = await createClient();
-    const { error } = await supabase.from("bookings").insert({
-      guest_name: data.guestName,
-      guest_phone: data.guestPhone,
-      guest_age: data.guestAge ?? null,
-      guest_sex: data.guestSex ?? null,
-      collection_type: data.collectionType,
-      address: data.address ?? null,
-      scheduled_date: data.scheduledDate,
-      scheduled_slot: data.scheduledSlot,
-      status: "pending",
-      payment_status: "unpaid",
-      total_amount: 0,
-    });
-
-    if (error) {
-      return { status: "error", message: "Could not save your booking. Please call the lab directly." };
-    }
+  if (!hasSupabase) {
+    return { status: "success" };
   }
+
+  const supabase = await createClient();
+
+  const { data: tests, error: testsError } = await supabase
+    .from("tests")
+    .select("id, slug, price")
+    .in("slug", data.testSlugs);
+
+  if (testsError || !tests || tests.length === 0) {
+    return { status: "error", message: "Selected tests are no longer available. Please try again." };
+  }
+
+  // Doctors are staff-managed (RLS: public read, staff write — see supabase/schema.sql), so a
+  // guest booking can only link an *existing* doctor by name, never create one. Unmatched free
+  // text is not persisted yet — see docs/todo.md.
+  let doctorId: string | null = null;
+  if (data.referringDoctor?.trim()) {
+    const { data: doctor } = await supabase
+      .from("doctors")
+      .select("id")
+      .ilike("name", data.referringDoctor.trim())
+      .maybeSingle();
+    doctorId = doctor?.id ?? null;
+  }
+
+  const totalAmount = tests.reduce((sum, t) => sum + Number(t.price), 0);
+
+  // Generate the id ourselves and skip `.select()` after insert: guest bookings (no
+  // patient_profile_id) intentionally have no RLS SELECT policy — anyone with the anon key
+  // reading every guest's name/phone/address back would be a real privacy leak — so
+  // `.insert().select()` would fail here even though the plain insert is allowed. See
+  // docs/database-schema.md and docs/decisions-log.md.
+  const bookingId = crypto.randomUUID();
+
+  const { error: bookingError } = await supabase.from("bookings").insert({
+    id: bookingId,
+    guest_name: data.guestName,
+    guest_phone: data.guestPhone,
+    guest_age: data.guestAge ?? null,
+    guest_sex: data.guestSex ?? null,
+    collection_type: data.collectionType,
+    address: data.address ?? null,
+    scheduled_date: data.scheduledDate,
+    scheduled_slot: data.scheduledSlot,
+    doctor_id: doctorId,
+    status: "pending",
+    payment_status: "unpaid",
+    total_amount: totalAmount,
+  });
+
+  if (bookingError) {
+    return { status: "error", message: "Could not save your booking. Please call the lab directly." };
+  }
+
+  const { error: itemsError } = await supabase.from("booking_items").insert(
+    tests.map((t) => ({
+      booking_id: bookingId,
+      test_id: t.id,
+      price_at_booking: t.price,
+    }))
+  );
+
+  if (itemsError) {
+    // The booking itself is saved and visible to staff even if the line-item breakdown isn't —
+    // not ideal, but better than losing the booking. See docs/todo.md for making this atomic
+    // (an RPC function, since postgrest doesn't support multi-statement transactions).
+    return { status: "success" };
+  }
+
+  // TODO(Phase 2): trigger the booking-confirmed SMS here (docs/system-design.md §9) — no SMS
+  // gateway is wired up yet.
 
   return { status: "success" };
 }

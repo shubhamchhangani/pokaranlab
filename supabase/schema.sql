@@ -260,6 +260,26 @@ as $$
   select exists (select 1 from staff where profile_id = uid);
 $$;
 
+-- Helper: may the current session attach booking_items to this booking? `security definer` is
+-- required here, not just style — `bookings` has its own RLS (patients only see rows matching
+-- their own patient_profile_id), so a plain subquery in the booking_items policy would have the
+-- same problem it's trying to solve: a guest can't see their own just-inserted booking under
+-- that policy, so an inline EXISTS would always evaluate false. This function runs as its
+-- owner (bypassing the caller's RLS on `bookings`, same mechanism as is_staff() above) to check
+-- ownership directly instead.
+create or replace function can_access_booking(target_booking_id uuid)
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (
+    select 1 from bookings
+    where id = target_booking_id
+      and (patient_profile_id is null or patient_profile_id = auth.uid())
+  );
+$$;
+
 -- Catalog & media: public read, staff write.
 create policy "public read test_categories" on test_categories for select using (true);
 create policy "staff write test_categories" on test_categories for all
@@ -309,6 +329,12 @@ create policy "patient read own booking_items" on booking_items for select
         and bookings.patient_profile_id = auth.uid()
     )
   );
+-- Mirrors "guest create booking" above — a guest (or the booking's own patient) can attach line
+-- items to a booking they just created, but only that booking (checked via the FK), never an
+-- arbitrary one. Uses can_access_booking() rather than an inline EXISTS — see that function's
+-- comment for why the inline version doesn't work.
+create policy "guest create booking_items" on booking_items for insert
+  with check (can_access_booking(booking_id));
 
 -- Reports: staff see/manage all; patients see only reports linked to their own bookings.
 create policy "staff manage reports" on reports for all

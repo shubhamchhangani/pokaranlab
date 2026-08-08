@@ -4,6 +4,36 @@ Reverse-chronological log of what's actually built, so a new session doesn't hav
 every file to know the current state. When you finish something from [todo.md](./todo.md), move
 its line here with the date.
 
+## 2026-08-08 — Real catalog data, working booking flow, admin bookings status
+
+- Seeded the live catalog (`supabase/seed.sql`): 5 tests + 1 package (Fever Panel, linked to CBC
+  via `package_tests`). `/tests` and `/packages` are no longer empty on the live site.
+- Added `lib/data/packages.ts` and the package detail route
+  (`app/[locale]/packages/[slug]/page.tsx`) — mirrors the `tests/[slug]` pattern, shows included
+  tests, has its own `generateStaticParams`/JSON-LD/sitemap entries. `mockPackages` split out of
+  the old `mockTests` "Fever Panel as a fake test" hack.
+- `createBooking` now actually resolves selected test slugs to real rows, computes
+  `total_amount`, and inserts `booking_items` — previously a TODO stub that only ever inserted
+  the `bookings` row with `total_amount: 0`.
+- Found and fixed two real RLS bugs while wiring the above, both only reproducible when testing
+  as the actual `anon` role (not the `postgres` superuser via `psql`, which bypasses RLS): (1)
+  `.insert().select()` on `bookings` needs the SELECT policy too, which guests intentionally
+  don't have — fixed by generating the id client-side and dropping `.select()`; (2) the
+  `booking_items` guest-insert policy's inline subquery against `bookings` inherited the guest's
+  (nonexistent) visibility into `bookings`, always evaluating false — fixed with a new
+  `security definer` function, `can_access_booking()`. Full writeup in
+  [decisions-log.md](./decisions-log.md) and [database-schema.md](./database-schema.md) — this
+  is a pattern that will recur for any future cross-table RLS policy (report lookup, Phase 2).
+- Admin bookings screen (`/admin/bookings`) now has a status filter and a per-row status
+  dropdown that updates live (`components/admin/BookingStatusSelect.tsx`,
+  `lib/actions/admin-bookings.ts`).
+- Deployed and verified live at https://pokaranlab.vercel.app.
+
+**Still open, deliberately not done this round:** packages can't be selected in the booking form
+(only individual tests); the "Ref. By doctor" field can link an existing doctor but not create
+one (RLS: `doctors` is staff-write-only); `bookings`/`booking_items` inserts aren't atomic (two
+separate calls, no RPC). All tracked in [todo.md](./todo.md).
+
 ## 2026-08-08 — First production deploy: https://pokaranlab.vercel.app
 
 Live and publicly reachable. `vercel link` created `shubham-chhanganis-projects/pokaranlab`;

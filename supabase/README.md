@@ -35,3 +35,19 @@ require re-deriving the steps.
    every new `auth.users` row into `public.profiles` — without it, the `insert` above would fail
    its foreign key (`staff.profile_id references profiles(id)`). If you're setting up a second
    Supabase project without this trigger for some reason, add it first.
+7. Run `seed.sql` (same `psql` command as step 2) for starter catalog content — 5 tests + 1
+   package. Everything in it is `on conflict do nothing`, safe to re-run. Replace with the lab's
+   real price list via `/admin/catalog` once that has write support for `packages` (currently
+   only `tests` does — see docs/admin-design.md).
+
+## Testing RLS changes
+
+Any new or edited RLS policy must be tested as the actual `anon`/`authenticated` role, not as
+the `postgres` connection from `$DB_URL` above — that connection is the table owner and RLS
+doesn't apply to owners at all, so it will not catch a broken policy. Two ways to test for real:
+
+- `psql "$DB_URL"`, then `SET ROLE anon;` before running the statement.
+- A plain Node script using `@supabase/supabase-js` with the anon key (not the DB connection
+  string) — closer to how the app actually talks to Supabase, and the only way to catch
+  `.insert().select()`-shaped bugs (see docs/decisions-log.md, 2026-08-08 entries, for a real
+  example this caught).

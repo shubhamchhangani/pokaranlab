@@ -82,18 +82,27 @@ export const mockTests: MockTest[] = [
     description_en: "Records the electrical activity of the heart.",
     description_hi: "हृदय की विद्युत गतिविधि की रिकॉर्डिंग।",
   },
+];
+
+export type MockPackage = {
+  slug: string;
+  name_en: string;
+  name_hi: string;
+  price: number;
+  description_en: string;
+  description_hi: string;
+  includedTestSlugs: string[];
+};
+
+export const mockPackages: MockPackage[] = [
   {
     slug: "fever-panel-pokaran",
     name_en: "Fever Panel",
     name_hi: "फीवर पैनल",
-    category_en: "Package",
-    sample_type: "Venous blood",
     price: 900,
-    turnaround_time: "Next day",
-    home_collection_available: true,
-    description_en:
-      "CBC, malaria, typhoid, and dengue screening in one panel.",
+    description_en: "CBC, malaria, typhoid, and dengue screening in one panel.",
     description_hi: "एक ही पैनल में सीबीसी, मलेरिया, टाइफाइड व डेंगू जांच।",
+    includedTestSlugs: ["cbc-test-pokaran"],
   },
 ];
 

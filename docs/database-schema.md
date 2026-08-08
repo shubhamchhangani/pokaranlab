@@ -74,6 +74,24 @@ this as a known gap, not a design decision: don't ship the phone+sample lookup t
 without either (a) an RPC that checks the booking's `guest_phone` server-side, or (b) OTP
 verification before the query runs, as system-design.md §4.3 specifies.
 
+### Gotcha: an RLS policy that references another RLS-protected table needs `security definer`
+
+`booking_items`'s guest-insert policy needs to check "does this `booking_id` belong to a guest
+booking?" — which means reading `bookings`. A plain subquery (`exists (select 1 from bookings
+where id = ...)`) *inherits the caller's RLS visibility into `bookings`*, not "is this row
+reachable in principle." A guest can't SELECT `bookings` (see above — no policy grants it, on
+purpose), so that inline subquery always evaluated to false and silently blocked every guest
+booking. Fixed with `can_access_booking(uuid)`, a `security definer` function — same trick as
+`is_staff()` — that runs with the function owner's privileges and so isn't subject to the
+caller's RLS on `bookings`. See [decisions-log.md](./decisions-log.md) for the full story,
+including the sibling bug this masked (`.insert().select()` needs the SELECT policy too, not
+just INSERT — fixed by generating the id client-side and not calling `.select()`).
+
+**Anywhere a new policy needs to check something in a second table that also has RLS, wrap the
+check in a `security definer` function.** And test it as the actual `anon`/`authenticated` role
+(a real anon-key client, or `psql` with `SET ROLE anon`) — `psql` as the default `postgres`
+connection is the table owner and bypasses RLS entirely, so it will not catch this class of bug.
+
 ## What's implemented vs. schema-only
 
 Everything in `schema.sql` exists as a table today, but the app only reads/writes a subset:
@@ -82,10 +100,15 @@ Everything in `schema.sql` exists as a table today, but the app only reads/write
 |---|---|
 | `site_settings` | Full — public read (Header/Footer/LocationMap/find-us/about), staff update via `/admin/settings` |
 | `tests`, `test_categories` | `tests`: full CRUD via `/admin/catalog` (create/edit/delete), public read (falls back to mock data — see [decisions-log.md](./decisions-log.md)). `test_categories`: read-only (category picker in the test form) — no admin screen to create/edit categories yet |
-| `bookings` | Insert (booking form), read (admin bookings list, dashboard counts) |
-| `packages`, `package_tests` | Schema only — no admin CRUD or public write path yet |
-| `media`, `doctors` | Schema only — no UI reads/writes them yet |
+| `bookings`, `booking_items` | Insert (booking form — resolves selected test slugs to real rows, computes `total_amount`, inserts both tables), read (admin bookings list with status filter, dashboard counts), update (`status` only, via `/admin/bookings`) |
+| `packages`, `package_tests` | Public read + detail page (`/[locale]/packages/[slug]`, shows included tests via `package_tests`) — **no admin CRUD yet**, editing means SQL (`supabase/seed.sql` has the one seeded row) |
+| `media` | Schema only — no UI reads/writes it yet |
+| `doctors` | Public read only — the booking form can *link* an existing doctor by name, can't create one (staff-write-only by RLS; see [todo.md](./todo.md)) |
 | `reports`, `report_results`, `staff`, `profiles` | Schema + partial (staff/profiles used by admin auth; reports has a read-only lookup stub) |
+
+`supabase/seed.sql` (new) has starter catalog content — 5 tests + 1 package — matching what
+`lib/data/mock-content.ts` used to fake. Run it once after `schema.sql`/`storage.sql` on a fresh
+project; it's `on conflict do nothing` throughout so re-running it is harmless.
 
 This table is the fast way to answer "is X wired up" without re-reading every file — keep it
 current as admin screens get built (see [todo.md](./todo.md) Phase 1 remainder / Phase 2).

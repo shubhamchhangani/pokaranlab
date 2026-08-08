@@ -31,28 +31,45 @@ current rather than exhaustive; it's meant to be read at the start of a session,
 
 ## Phase 1 — Core MVP (in progress)
 
-- [ ] Seed real test/package data into Supabase (currently only mock data exists) — once seeded,
-      delete `lib/data/mock-content.ts` and the fallback branches in `lib/data/tests.ts` and
-      `lib/data/site.ts`
-- [ ] Package detail route (`/[locale]/packages/[slug]`) — currently only a list page exists,
-      see `docs/decisions-log.md`
+- [x] Seed real test/package data into Supabase — `supabase/seed.sql`, 5 tests + 1 package
+      (Fever Panel, linked to CBC via `package_tests`) live as of 2026-08-08. Still placeholder
+      content, not the lab's real price list — replace via `/admin/catalog` whenever that's
+      available. `lib/data/mock-content.ts` fallback kept intentionally (see
+      `docs/decisions-log.md`), not deleted.
+- [x] Package detail route (`/[locale]/packages/[slug]`) — `lib/data/packages.ts` +
+      `app/[locale]/packages/[slug]/page.tsx`, mirrors the `tests/[slug]` pattern including
+      `generateStaticParams`/JSON-LD, plus shows included tests via `package_tests`
 - [x] Admin catalog: add/edit/delete for `tests` (`app/admin/catalog/{new,[id]}`,
       `lib/actions/catalog.ts`), including a raw-JSON `custom_fields` editor
 - [ ] Admin catalog: same CRUD for `packages` and `test_categories` (currently only `tests` has
       it — categories can be picked but not created; follow the `tests` pattern, see
-      `docs/admin-design.md`)
+      `docs/admin-design.md`). `packages` now has real public read/detail pages (see above) but
+      still no admin write path — editing the Fever Panel means SQL, not the admin panel yet.
 - [ ] Admin catalog: image upload to `public-media` (currently no UI touches the `media` table)
 - [x] Admin site settings screen (`/admin/settings`) editing the `site_settings` singleton row
 - [ ] Landing page hero carousel / gallery photos / video links from system-design.md §6.1 —
       schema (`media` table) exists, no admin UI or public rendering yet
 - [ ] Verify `revalidatePath` actually busts the cache for statically-generated locale pages
-      after a settings/catalog edit once real Supabase is live — see the caveat in
-      `docs/admin-design.md`
-- [ ] Admin bookings: status update (confirmed → sample collected → processing → report ready),
-      date/status filters
-- [ ] Wire booking Server Action to actually resolve `testSlugs` → test/package IDs and insert
-      `booking_items` (currently only inserts the `bookings` row with `total_amount: 0` — see
-      the TODO comment in `lib/actions/bookings.ts`)
+      after a settings/catalog edit — not yet specifically confirmed even though real Supabase
+      is live; see the caveat in `docs/admin-design.md`
+- [x] Admin bookings: status update via `components/admin/BookingStatusSelect.tsx` +
+      `lib/actions/admin-bookings.ts`, plus a status filter on `/admin/bookings`
+- [x] Wire booking Server Action to resolve `testSlugs` → test IDs and insert `booking_items`,
+      with a real computed `total_amount` (was hardcoded to 0). **Packages can't be booked yet**
+      — `BookingForm` only offers individual tests, not packages, so the "Book This Test" button
+      on a package detail page links to `/book-a-test?test=<package-slug>`, which won't
+      preselect anything since it only matches test slugs. Extending the form to accept
+      packages is the natural next step here.
+- [ ] Make booking creation atomic — `createBooking` currently inserts `bookings` then
+      `booking_items` as two separate calls; if the second fails, the booking is saved without
+      its line items (logged as a known gap in the code, not silently wrong, but not ideal).
+      PostgREST doesn't support multi-statement transactions from the client, so this needs a
+      `security definer` RPC function that does both inserts in one call.
+- [ ] Wire the "Ref. By doctor" field to actually persist — currently a guest booking can only
+      *link* an existing `doctors` row by exact-ish name match (`ilike`); unmatched free text is
+      silently dropped, since `doctors` is staff-write-only under RLS and a guest can't create
+      one. Consider either loosening `doctors` INSERT to guests (a real RLS decision, not just
+      "add a policy") or adding a free-text fallback column on `bookings`.
 
 ## Phase 2 — Reports
 

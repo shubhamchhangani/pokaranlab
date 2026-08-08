@@ -1,13 +1,14 @@
 import type { MetadataRoute } from "next";
 import { routing } from "@/i18n/routing";
 import { getTests } from "@/lib/data/tests";
+import { getPackages } from "@/lib/data/packages";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pokaranlab.com";
 
 const staticPaths = ["", "/tests", "/packages", "/book-a-test", "/download-report", "/find-us", "/about"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const tests = await getTests();
+  const [tests, packages] = await Promise.all([getTests(), getPackages()]);
 
   const entries: MetadataRoute.Sitemap = [];
 
@@ -17,6 +18,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
     for (const test of tests) {
       entries.push({ url: `${BASE_URL}/${locale}/tests/${test.slug}` });
+    }
+    for (const pkg of packages) {
+      entries.push({ url: `${BASE_URL}/${locale}/packages/${pkg.slug}` });
     }
   }
 
