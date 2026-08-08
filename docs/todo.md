@@ -46,10 +46,16 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       `package_tests` linking checklist (replace-all-on-save). `test_categories`: add/delete
       (`app/admin/categories`, `lib/actions/categories.ts`) — no edit/rename yet, only
       create-and-delete, since categories rarely change.
-- [ ] Admin catalog: image upload to `public-media` (currently no UI touches the `media` table)
+- [x] Admin catalog: primary image upload for `tests`/`packages` (`lib/actions/upload-image.ts`,
+      to the `public-media` bucket), rendered on catalog grids/detail pages via
+      `components/ui/CardImage.tsx`. **Only a single "primary" image** — the full `media` table
+      (multiple photos per test, reorder, landing-page gallery/hero) is still schema-only, no UI.
 - [x] Admin site settings screen (`/admin/settings`) editing the `site_settings` singleton row
 - [ ] Landing page hero carousel / gallery photos / video links from system-design.md §6.1 —
-      schema (`media` table) exists, no admin UI or public rendering yet
+      the `media` table (`entity_type='landing'`) exists, no admin UI or public rendering yet.
+      Category-level default images (`test_categories.default_image_url`, for tests with no
+      photo of their own — system-design.md §5.1) are also unbuilt; a test with no
+      `primary_image_url` just renders with no image today, no fallback chain.
 - [ ] Verify `revalidatePath` actually busts the cache for statically-generated locale pages
       after a settings/catalog edit — not yet specifically confirmed even though real Supabase
       is live; see the caveat in `docs/admin-design.md`

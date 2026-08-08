@@ -4,6 +4,15 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-08 — Catalog images are `tests.primary_image_url`/`packages.primary_image_url`
+  (one column, uploaded straight to Storage), not the `media` table.** system-design.md §5.1
+  already justifies `media` for multi-photo/landing-page use and `primary_image_url` for the
+  fast single-thumbnail path — this just wired up the second one first, since it's what the
+  catalog grids actually needed today. `lib/actions/upload-image.ts` is a plain (non-`"use
+  server"`) helper imported by both `lib/actions/catalog.ts` and `lib/actions/packages.ts`,
+  rather than duplicating the upload logic — a `"use server"` file may only export async
+  functions (Next.js enforces this), so shared helpers used *by* actions live in their own
+  un-annotated module.
 - **2026-08-08 — Booking form items are encoded as `"test:<slug>"` / `"package:<slug>"`
   strings, not two separate arrays.** Once packages needed to be bookable too, the booking form
   had to select from two different tables in one list. A single `items` field with a type

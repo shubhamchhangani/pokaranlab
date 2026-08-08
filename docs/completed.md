@@ -4,6 +4,19 @@ Reverse-chronological log of what's actually built, so a new session doesn't hav
 every file to know the current state. When you finish something from [todo.md](./todo.md), move
 its line here with the date.
 
+## 2026-08-08 — Catalog image upload
+
+- Staff can upload one primary image per test/package from `/admin/catalog` and
+  `/admin/packages` (`lib/actions/upload-image.ts`, uploads to the `public-media` bucket
+  provisioned earlier today in `storage.sql`). Images render on the tests/packages grids,
+  popular-tests section, and detail pages via a new shared `components/ui/CardImage.tsx`.
+- This is `tests.primary_image_url`/`packages.primary_image_url` only — the full `media` table
+  (multiple photos, landing-page hero/gallery, category default images) is still untouched by
+  any UI. See [database-schema.md](./database-schema.md).
+- Verified the actual upload → public URL → fetch → delete cycle against live Storage with the
+  real staff session, not just by reading the RLS policy.
+- Deployed and verified live at https://pokaranlab.vercel.app.
+
 ## 2026-08-08 — Packages/categories admin CRUD, packages are bookable, deployed
 
 - Booking form now offers packages alongside individual tests (unified `test:<slug>`/
