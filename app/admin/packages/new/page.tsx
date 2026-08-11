@@ -13,6 +13,9 @@ export default async function NewPackagePage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-semibold text-brand-indigo">Add Package</h1>
+      <p className="mt-1 text-sm text-brand-ink/60">
+        Save this package first — the photo gallery option appears on its edit page afterward.
+      </p>
       <div className="mt-6">
         <PackageForm tests={tests ?? []} />
       </div>

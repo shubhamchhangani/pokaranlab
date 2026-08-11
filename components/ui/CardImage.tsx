@@ -8,7 +8,7 @@ export function CardImage({ src }: { src: string }) {
       alt=""
       width={400}
       height={200}
-      className="-mx-6 -mt-6 mb-4 h-32 w-[calc(100%+3rem)] rounded-t-2xl object-cover"
+      className="-mx-6 -mt-6 mb-4 h-32 w-[calc(100%+3rem)] rounded-t-2xl bg-brand-ink/5 object-contain"
     />
   );
 }

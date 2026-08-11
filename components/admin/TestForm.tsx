@@ -5,7 +5,8 @@ import { upsertTest, type TestFormState } from "@/lib/actions/catalog";
 import { FormField, inputClasses } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
 import type { TestCategory } from "@/lib/data/categories";
-import type { NormalRangeTemplate } from "@/lib/types/normal-range";
+import type { NormalRangeTemplate, PanelParameter } from "@/lib/types/normal-range";
+import { REPORT_PRESETS } from "@/lib/data/report-presets";
 
 const initialState: TestFormState = { status: "idle" };
 
@@ -36,6 +37,30 @@ export function TestForm({
   const [state, formAction, pending] = useActionState(upsertTest, initialState);
   const [rangeType, setRangeType] = useState(initialValues?.normal_range_template?.type ?? "none");
   const template = initialValues?.normal_range_template;
+  const [panelParams, setPanelParams] = useState<PanelParameter[]>(
+    template?.type === "panel" ? template.parameters : []
+  );
+  const [presetId, setPresetId] = useState("");
+
+  function loadPreset() {
+    const preset = REPORT_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setPanelParams(preset.parameters.map((p) => ({ ...p })));
+  }
+
+  function addPanelParam() {
+    setPanelParams((rows) => [...rows, { type: "numeric", name: "", unit: "", low: 0, high: 0 }]);
+  }
+
+  function updatePanelParam(index: number, patch: Partial<PanelParameter>) {
+    setPanelParams((rows) =>
+      rows.map((row, i) => (i === index ? ({ ...row, ...patch } as PanelParameter) : row))
+    );
+  }
+
+  function removePanelParam(index: number) {
+    setPanelParams((rows) => rows.filter((_, i) => i !== index));
+  }
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
@@ -105,7 +130,7 @@ export function TestForm({
           <img
             src={initialValues.primary_image_url}
             alt=""
-            className="mb-2 h-24 w-24 rounded-lg border border-brand-ink/10 object-cover"
+            className="mb-2 h-24 w-24 rounded-lg border border-brand-ink/10 bg-brand-ink/5 object-contain"
           />
         )}
         <input
@@ -200,7 +225,113 @@ export function TestForm({
           <option value="none">— None —</option>
           <option value="numeric">Numeric range (e.g. 12–16 g/dL)</option>
           <option value="text">Text (e.g. &ldquo;Negative&rdquo;, &ldquo;Non-reactive&rdquo;)</option>
+          <option value="panel">Panel (multiple parameters, e.g. CBC)</option>
         </select>
+
+        {rangeType === "panel" && (
+          <div className="mt-3 flex flex-col gap-3 rounded-xl border border-brand-ink/10 bg-brand-paper p-3">
+            <input type="hidden" name="panel_parameters_json" value={JSON.stringify(panelParams)} />
+
+            <div className="flex flex-wrap items-end gap-2">
+              <FormField label="Load a preset to start from" htmlFor="preset_picker" className="flex-1">
+                <select
+                  id="preset_picker"
+                  value={presetId}
+                  onChange={(e) => setPresetId(e.target.value)}
+                  className={inputClasses}
+                >
+                  <option value="">— Select a preset —</option>
+                  {REPORT_PRESETS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <Button type="button" variant="outline" onClick={loadPreset} disabled={!presetId}>
+                Load
+              </Button>
+            </div>
+            <p className="text-xs text-brand-ink/50">
+              Presets are general adult reference ranges as a starting point — verify against this
+              lab&rsquo;s equipment, then edit/add/remove rows freely before saving.
+            </p>
+
+            <div className="flex flex-col gap-2">
+              {panelParams.map((param, i) => (
+                <div key={i} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-brand-ink/10 bg-white p-2">
+                  <input
+                    value={param.name}
+                    onChange={(e) => updatePanelParam(i, { name: e.target.value })}
+                    placeholder="Parameter name"
+                    className={`${inputClasses} col-span-3`}
+                  />
+                  <select
+                    value={param.type}
+                    onChange={(e) =>
+                      updatePanelParam(
+                        i,
+                        e.target.value === "numeric"
+                          ? { type: "numeric", unit: "", low: 0, high: 0 }
+                          : { type: "text", display: "" }
+                      )
+                    }
+                    className={`${inputClasses} col-span-2`}
+                  >
+                    <option value="numeric">Numeric</option>
+                    <option value="text">Text</option>
+                  </select>
+                  {param.type === "numeric" ? (
+                    <>
+                      <input
+                        value={param.low}
+                        onChange={(e) => updatePanelParam(i, { low: Number(e.target.value) })}
+                        type="number"
+                        step="any"
+                        placeholder="Low"
+                        className={`${inputClasses} col-span-2`}
+                      />
+                      <input
+                        value={param.high}
+                        onChange={(e) => updatePanelParam(i, { high: Number(e.target.value) })}
+                        type="number"
+                        step="any"
+                        placeholder="High"
+                        className={`${inputClasses} col-span-2`}
+                      />
+                      <input
+                        value={param.unit}
+                        onChange={(e) => updatePanelParam(i, { unit: e.target.value })}
+                        placeholder="Unit"
+                        className={`${inputClasses} col-span-2`}
+                      />
+                    </>
+                  ) : (
+                    <input
+                      value={param.display}
+                      onChange={(e) => updatePanelParam(i, { display: e.target.value })}
+                      placeholder="Default value, e.g. Negative"
+                      className={`${inputClasses} col-span-6`}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removePanelParam(i)}
+                    className="col-span-1 text-xs text-red-600 hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              {panelParams.length === 0 && (
+                <p className="text-sm text-brand-ink/50">No parameters yet — load a preset or add one below.</p>
+              )}
+            </div>
+            <Button type="button" variant="outline" onClick={addPanelParam} className="w-fit">
+              + Add parameter
+            </Button>
+          </div>
+        )}
 
         {rangeType === "numeric" && (
           <div className="mt-2 grid grid-cols-3 gap-2">

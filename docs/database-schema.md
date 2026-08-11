@@ -154,3 +154,16 @@ project; it's `on conflict do nothing` throughout so re-running it is harmless.
 
 This table is the fast way to answer "is X wired up" without re-reading every file — keep it
 current as admin screens get built (see [todo.md](./todo.md) Phase 1 remainder / Phase 2).
+
+## Indexes for admin list pages at scale
+
+`/admin/bookings` and `/admin/reports` are page-based (`?page=`) rather than `.limit(50)` with no
+way past it — see [decisions-log.md](./decisions-log.md) (2026-08-11) for why. The list/filter/
+search queries they run are covered by: `bookings_guest_phone_idx`, `bookings_scheduled_date_idx`,
+`bookings_status_idx`, `reports_created_at_idx`, `reports_patient_name_idx`,
+`reports_patient_phone_idx` (plus `reports.sample_no`'s existing `unique` constraint, which is
+already an index). The search boxes filter with `ilike 'term%'` (prefix match) rather than
+`%term%` specifically so these plain btree indexes can be used — a leading wildcard can't use a
+btree index without the `pg_trgm` extension, which isn't set up here and isn't needed at this
+lab's scale (hundreds of rows/day, not the volume where trigram search pays for itself). Add
+`pg_trgm` if free-text substring search becomes a real requirement later.

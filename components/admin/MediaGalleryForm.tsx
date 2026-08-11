@@ -79,7 +79,7 @@ export function MediaGalleryForm({
         {media.map((item) => (
           <div key={item.id} className="overflow-hidden rounded-lg border border-brand-ink/10 bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.url} alt="" className="h-24 w-full object-cover" />
+            <img src={item.url} alt="" className="h-28 w-full bg-brand-ink/5 object-contain" />
             <form action={deleteMedia} className="p-1.5">
               <input type="hidden" name="id" value={item.id} />
               <input type="hidden" name="entity_type" value={entityType} />

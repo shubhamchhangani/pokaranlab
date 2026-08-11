@@ -203,6 +203,8 @@ create table bookings (
 
 create index bookings_guest_phone_idx on bookings (guest_phone);
 create index bookings_scheduled_date_idx on bookings (scheduled_date);
+-- Supports /admin/bookings' status filter + the scheduled_date-desc list ordering at scale.
+create index bookings_status_idx on bookings (status);
 
 create table booking_items (
   id uuid primary key default gen_random_uuid(),
@@ -256,6 +258,12 @@ create table report_results (
 );
 
 create index report_results_report_id_idx on report_results (report_id);
+
+-- Supports /admin/reports' created_at-desc list ordering and its search box (sample_no/
+-- patient_name prefix search, and verify_report_access()'s phone lookup) at scale.
+create index reports_created_at_idx on reports (created_at desc);
+create index reports_patient_name_idx on reports (patient_name);
+create index reports_patient_phone_idx on reports (patient_phone);
 
 -- ─────────────────────────────────────────────────────────────────
 -- Row Level Security

@@ -12,6 +12,9 @@ export default async function NewTestPage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-semibold text-brand-indigo">Add Test</h1>
+      <p className="mt-1 text-sm text-brand-ink/60">
+        Save this test first — the photo gallery option appears on its edit page afterward.
+      </p>
       <div className="mt-6">
         <TestForm categories={categories} />
       </div>

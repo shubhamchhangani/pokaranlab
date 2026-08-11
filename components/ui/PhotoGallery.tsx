@@ -15,7 +15,7 @@ export function PhotoGallery({ media, locale }: { media: MediaItem[]; locale: st
             alt={caption ?? ""}
             width={200}
             height={150}
-            className="h-24 w-full rounded-lg object-cover"
+            className="h-28 w-full rounded-lg bg-brand-ink/5 object-contain"
           />
         );
       })}

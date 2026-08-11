@@ -70,7 +70,7 @@ export default async function TestDetailPage(props: PageProps<"/[locale]/tests/[
           alt=""
           width={800}
           height={400}
-          className="mb-6 h-56 w-full rounded-2xl object-cover"
+          className="mb-6 h-64 w-full rounded-2xl bg-brand-ink/5 object-contain sm:h-80"
         />
       )}
 

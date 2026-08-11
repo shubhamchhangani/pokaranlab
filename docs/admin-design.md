@@ -19,14 +19,25 @@ the UI — `staff.staff_role` is stored and returned by `getAdminSession()` but 
 it yet (e.g. pricing-edit restriction for non-owner staff, per system-design.md §7). Tracked
 below.
 
+## Mobile
+
+`app/admin/layout.tsx` now renders `components/admin/AdminMobileNav.tsx` (a `sm:hidden` sticky
+top bar with a hamburger toggle) alongside the existing desktop `<aside>` (`hidden sm:flex`) —
+before this, the sidebar was the *only* nav and simply didn't render below the `sm` breakpoint, so
+the admin panel had no way to move between screens on a real phone without forcing "desktop mode"
+in the browser. List tables (bookings/reports/catalog/packages/categories) already scroll
+horizontally (`overflow-x-auto`) rather than breaking layout; forms already stack to one column
+below `sm` since every grid is `sm:grid-cols-N` (mobile-first Tailwind default). See
+`docs/decisions-log.md`.
+
 ## Screens
 
 | # | Screen | Status |
 |---|---|---|
 | 1 | Dashboard | Built — `app/admin/page.tsx`. Two live counts (today's bookings, pending reports) via Supabase `count`. No revenue view. |
-| 2 | Bookings | Built — `app/admin/bookings/page.tsx`. Status filter, per-row status update, "Create Report" link per booking. No date filter yet. |
-| 3 | Report entry | **Built.** `app/admin/reports/{new,[id]}`, `lib/actions/reports-admin.ts`, `components/admin/ReportForm.tsx`. Sample no./patient details/optional booking link, dynamic results table (catalog auto-fill + auto High/Low flag, or free-form custom rows), draft/final status, PDF generated and stored on every save with results. No staff-role restriction (any staff can finalize a report). |
-| 4 | Catalog management | **Built.** `tests` and `packages` both have full create/edit/delete + raw-JSON `custom_fields` editors + primary-image upload + multi-photo galleries (`components/admin/MediaGalleryForm.tsx`, same `media` table as the landing hero) + (`tests` only) a `normal_range_template` editor. `test_categories` has full create/edit/delete/rename + a default fallback photo. **Still missing:** photo reordering within a gallery (order is set by typing a number, no drag-and-drop), video links. |
+| 2 | Bookings | Built — `app/admin/bookings/page.tsx`. Status filter, name/phone search, pagination (`?page=`), per-row status update, "Create Report" link per booking. No date filter yet. |
+| 3 | Report entry | **Built.** `app/admin/reports/{new,[id]}`, `lib/actions/reports-admin.ts`, `components/admin/ReportForm.tsx`. Sample no./patient details/optional booking link, dynamic results table (catalog auto-fill + auto High/Low flag, or free-form custom rows), draft/final status, PDF generated and stored on every save with results. Catalog auto-fill now expands a panel-type test (CBC etc.) into one row per parameter — see below. Pagination + search added to the list (`?page=`, `?q=`). No staff-role restriction (any staff can finalize a report). |
+| 4 | Catalog management | **Built.** `tests` and `packages` both have full create/edit/delete + raw-JSON `custom_fields` editors + primary-image upload + multi-photo galleries (`components/admin/MediaGalleryForm.tsx`, same `media` table as the landing hero — gallery section only shows on the *edit* page, since it needs an `entity_id`; the "Add Test"/"Add Package" pages now say so) + (`tests` only) a `normal_range_template` editor including a `panel` type (multi-parameter tests like CBC — `lib/data/report-presets.ts` has 8 starting presets, see [database-schema.md](./database-schema.md)). `test_categories` has full create/edit/delete/rename + a default fallback photo. **Still missing:** photo reordering within a gallery (order is set by typing a number, no drag-and-drop), video links. |
 | 5 | Site content | **Two screens, split by content type.** `/admin/settings` edits the `site_settings` singleton (contact/hours/map links). `/admin/site-content` manages the homepage hero carousel (`media`, `entity_type='landing'`, via the same generalized `MediaGalleryForm`). **Still missing:** video links (system-design.md §6.1 mentions these; no UI for them). |
 | 6 | Staff management | **Not built.** |
 

@@ -4,7 +4,12 @@ import { useActionState, useState } from "react";
 import { upsertReport, type ReportFormState } from "@/lib/actions/reports-admin";
 import { FormField, inputClasses } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
-import { normalRangeDisplay, flagResult, type NormalRangeTemplate } from "@/lib/types/normal-range";
+import {
+  normalRangeDisplay,
+  flagResult,
+  panelParameterTemplate,
+  type NormalRangeTemplate,
+} from "@/lib/types/normal-range";
 
 export type TestOption = {
   id: string;
@@ -60,16 +65,34 @@ export function ReportForm({
   function addFromCatalog() {
     const test = tests.find((t) => t.id === pickerTestId);
     if (!test) return;
-    setRows((r) => [
-      ...r,
-      {
-        test_name: test.name_en,
-        result_value: "",
-        normal_range: normalRangeDisplay(test.normal_range_template),
-        flag: "",
-        template: test.normal_range_template,
-      },
-    ]);
+    const template = test.normal_range_template;
+
+    if (template?.type === "panel") {
+      setRows((r) => [
+        ...r,
+        ...template.parameters.map((param) => {
+          const paramTemplate = panelParameterTemplate(param);
+          return {
+            test_name: `${test.name_en} — ${param.name}`,
+            result_value: param.type === "text" ? param.display : "",
+            normal_range: normalRangeDisplay(paramTemplate),
+            flag: "" as const,
+            template: paramTemplate,
+          };
+        }),
+      ]);
+    } else {
+      setRows((r) => [
+        ...r,
+        {
+          test_name: test.name_en,
+          result_value: "",
+          normal_range: normalRangeDisplay(template),
+          flag: "",
+          template,
+        },
+      ]);
+    }
     setPickerTestId("");
   }
 

@@ -67,7 +67,7 @@
     "submit": "Confirm Booking",
     "submitting": "Submitting...",
     "successTitle": "Booking Received!",
-    "successMessage": "We've received your booking. You'll get an SMS confirmation shortly.",
+    "successMessage": "We've received your booking. Our team will contact you shortly to confirm.",
     "errorMessage": "Something went wrong. Please try again or call us directly."
   },
   "downloadReport": {

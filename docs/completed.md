@@ -4,6 +4,46 @@ Reverse-chronological log of what's actually built, so a new session doesn't hav
 every file to know the current state. When you finish something from [todo.md](./todo.md), move
 its line here with the date.
 
+## 2026-08-11 — Admin usability round: mobile nav, image cropping, report presets, pagination
+
+Eight client-reported items in one pass:
+
+- **Staff Login link** — low-contrast link in the public footer → `/admin/login`, not meant for
+  patients to notice.
+- **Admin mobile nav** — the sidebar was `hidden sm:flex` with zero mobile fallback (didn't
+  render below 640px at all, no way to navigate without forcing "desktop mode"). Added
+  `components/admin/AdminMobileNav.tsx`, a hamburger + slide-down menu, `sm:hidden`.
+- **Report presets / multi-parameter tests** — `normal_range_template` gained a `panel` variant
+  (`lib/types/normal-range.ts`) so one test (CBC, etc.) can hold many named parameters instead of
+  one value. `lib/data/report-presets.ts` ships 8 starting presets (CBC, Diabetes Profile,
+  Malaria, Urine Routine, Lipid Profile, LFT, KFT, Thyroid Profile) selectable from `TestForm`,
+  fully editable before saving — nothing writes to the DB until the admin saves it. `ReportForm`'s
+  "add from catalog" now expands a panel test into one row per parameter.
+- **Scale: pagination + indexes** — `/admin/bookings` and `/admin/reports` were `.limit(50)` with
+  no way to reach anything past row 50. Now page-based (`?page=`) with search boxes, using a
+  fetch-N+1 trick instead of `COUNT(*)` to detect a next page. New indexes: `bookings_status_idx`,
+  `reports_created_at_idx`, `reports_patient_name_idx`, `reports_patient_phone_idx`.
+- **www.pokaranlab.vercel.app cert warning** — same root cause as the 2026-08-09 entry below
+  (no `www.` variant exists for this `.vercel.app` project), just a different browser symptom
+  (`ERR_CERT_COMMON_NAME_INVALID`). No code fix possible or needed before `pokaranlab.com`.
+- **Image cropping fixed** — hero carousel, primary test/package images, galleries, and admin
+  upload previews all used fixed-height `object-cover`, cropping tops/bottoms off anything that
+  wasn't the box's exact aspect ratio. Switched to `object-contain` on a neutral background
+  (letterboxed, nothing cropped) everywhere except the one true icon-sized thumbnail.
+- **Gallery feature confirmed working, not broken** — checked the live `media` table directly
+  (anon client, mirrors the real public read path): landing-carousel rows exist and read fine, no
+  test/package rows exist yet because none had been uploaded, not because of a bug. Most likely
+  explanation: tried from the "Add Test"/"Add Package" page, which correctly has no gallery
+  section yet (needs a saved row first) — added a one-line hint there so it's not confusing next
+  time.
+- **Misleading SMS text removed** — booking success message promised "an SMS confirmation
+  shortly" with no SMS gateway wired up. Replaced with "our team will contact you shortly" (EN +
+  HI); SMS integration stays explicitly client-scoped, see `docs/todo.md` Housekeeping.
+
+Full reasoning for each in `docs/decisions-log.md` (2026-08-11 entries). Schema changes (new
+indexes) need `supabase/schema.sql`'s new statements applied to the live DB manually — see that
+file's diff, `supabase/README.md` has the `psql` command.
+
 ## 2026-08-09 — Google Search Console live, photo galleries, category images
 
 **Search Console:** verified `https://pokaranlab.vercel.app` as a property, submitted the

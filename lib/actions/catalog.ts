@@ -26,11 +26,12 @@ const testSchema = z.object({
     .transform((v) => v === "on"),
   // Built into `normal_range_template` jsonb below, not stored as columns themselves — see
   // docs/database-schema.md for the shape and why report entry depends on it.
-  normal_range_type: z.enum(["none", "numeric", "text"]).optional().default("none"),
+  normal_range_type: z.enum(["none", "numeric", "text", "panel"]).optional().default("none"),
   normal_range_low: z.string().optional(),
   normal_range_high: z.string().optional(),
   normal_range_unit: z.string().optional(),
   normal_range_text: z.string().optional(),
+  panel_parameters_json: z.string().optional(),
   custom_fields: z
     .string()
     .optional()
@@ -83,6 +84,7 @@ export async function upsertTest(
     normal_range_high,
     normal_range_unit,
     normal_range_text,
+    panel_parameters_json,
     ...values
   } = parsed.data;
   const supabase = await createClient();
@@ -97,7 +99,9 @@ export async function upsertTest(
         }
       : normal_range_type === "text"
         ? { type: "text", display: normal_range_text || "" }
-        : null;
+        : normal_range_type === "panel"
+          ? { type: "panel", parameters: JSON.parse(panel_parameters_json || "[]") }
+          : null;
 
   const uploadedUrl = await uploadPrimaryImage(supabase, imageFile, "tests");
   const row = {

@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import NextLink from "next/link";
 import { Link } from "@/i18n/navigation";
 import { getSiteInfo } from "@/lib/data/site";
 
@@ -41,8 +42,13 @@ export async function Footer() {
         </nav>
       </div>
 
-      <div className="border-t border-brand-paper/10 px-4 py-4 text-center text-xs text-brand-paper/60 sm:px-6">
-        © {new Date().getFullYear()} {siteInfo.shortName} — {t("footer.rightsReserved")}
+      <div className="flex flex-col items-center justify-center gap-1 border-t border-brand-paper/10 px-4 py-4 text-center text-xs text-brand-paper/60 sm:flex-row sm:justify-between sm:px-6">
+        <p>
+          © {new Date().getFullYear()} {siteInfo.shortName} — {t("footer.rightsReserved")}
+        </p>
+        <NextLink href="/admin/login" className="text-brand-paper/30 hover:text-brand-paper/60">
+          Staff Login
+        </NextLink>
       </div>
     </footer>
   );

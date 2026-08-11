@@ -3,6 +3,7 @@ import { Hind } from "next/font/google";
 import { getAdminSession, hasSupabase } from "@/lib/auth/admin";
 import { adminLogout } from "@/lib/actions/auth";
 import { getSiteInfo } from "@/lib/data/site";
+import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
 import "../globals.css";
 
 const hind = Hind({ variable: "--font-hind", subsets: ["latin"], weight: ["400", "500", "600"] });
@@ -46,9 +47,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <html lang="en" className={`${hind.variable} h-full antialiased`}>
-      <body className="flex min-h-full font-sans">
+      <body className="flex min-h-full flex-col font-sans sm:flex-row">
         {session && siteInfo ? (
           <>
+            <AdminMobileNav shortName={siteInfo.shortName} navItems={navItems} logoutAction={adminLogout} />
             <aside className="hidden w-56 flex-col gap-1 border-r border-brand-ink/10 bg-white p-4 sm:flex">
               <p className="mb-4 px-2 font-display text-lg font-semibold text-brand-indigo">
                 {siteInfo.shortName}
@@ -68,7 +70,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 </button>
               </form>
             </aside>
-            <main className="flex-1 bg-brand-paper p-6">{children}</main>
+            <main className="flex-1 bg-brand-paper p-4 sm:p-6">{children}</main>
           </>
         ) : (
           children

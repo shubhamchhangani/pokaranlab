@@ -4,6 +4,70 @@ Where the actual build diverges from [system-design.md](./system-design.md), or 
 judgment call was made that isn't obvious from reading the code. Newest first. Keep entries
 short — one or two lines of "what" and "why".
 
+- **2026-08-11 — Report presets are shipped as an in-app static library, not seeded into the
+  live DB.** `lib/data/report-presets.ts` holds 8 common multi-parameter test panels (CBC,
+  Diabetes Profile, Malaria, Urine Routine, Lipid Profile, LFT, KFT, Thyroid Profile) as
+  code-level starting points, loaded into a test's `normal_range_template` only when an admin
+  explicitly clicks "Load preset" in `TestForm` and then saves. This is a deliberate exception to
+  the "admin owns all business content, nothing hardcoded" rule established earlier in this
+  project (see the `feedback_admin_owns_content` memory) — the distinction is that these are
+  generic, publicly-known clinical reference ranges (not a Pokaran-Lab-specific fact like a
+  price or phone number), they never touch the database until the admin chooses to apply and
+  save them, and every value stays fully editable/addable/removable afterward. The UI and
+  `docs/todo.md` both say explicitly that these are general adult ranges to verify against the
+  lab's actual equipment, not calibrated data — avoids the tool silently asserting medical facts.
+- **2026-08-11 — `NormalRangeTemplate` gained a `panel` variant instead of a separate table.**
+  A single test like CBC has ~14 result parameters (Hemoglobin, WBC, Platelets, ...), but the
+  existing schema modeled one test = one number/text value. Rather than a new
+  `test_parameters` table (more RLS surface, another join, more migration risk), `panel` is just
+  `{type:"panel", parameters: PanelParameter[]}` inside the same `jsonb` column, and each
+  parameter reduces to the *same shape* as a standalone numeric/text template
+  (`panelParameterTemplate()` in `lib/types/normal-range.ts`) — so `ReportForm`'s existing
+  per-row flagging/display logic needed zero changes, it just runs once per expanded row instead
+  of once per test. `normal_range_template` isn't used anywhere public-facing (checked — only
+  `ReportForm`'s "add from catalog"), so this was safe to change without touching any public page.
+- **2026-08-11 — Admin list pages (`/admin/bookings`, `/admin/reports`) switched from
+  `.limit(50)` to real pagination, using a fetch-one-extra-row trick instead of `COUNT(*)`.**
+  Both lists were hard-capped at 50 rows with no way to reach anything older — invisible, not
+  just slow, once the lab passes ~50 bookings or reports total. Fixed with `?page=`-based
+  `.range()` pagination; "is there a next page" is answered by fetching `PAGE_SIZE + 1` rows and
+  checking if the extra one came back, not a separate `COUNT(*)` query — `COUNT` has to scan the
+  whole matching set, which gets worse as the table grows, exactly backwards for something that
+  runs on every single list-page load. Added `bookings_status_idx`, `reports_created_at_idx`,
+  `reports_patient_name_idx`, `reports_patient_phone_idx`; search boxes use `ilike 'term%'`
+  (prefix match, indexable by a plain btree) rather than `%term%` (would need `pg_trgm`, not
+  worth adding at this lab's scale — see `docs/database-schema.md`).
+- **2026-08-11 — Image display switched from `object-cover` to `object-contain` almost
+  everywhere (hero carousel, primary test/package images, galleries, admin previews).**
+  `object-cover` on a fixed-height box crops whatever doesn't match that box's aspect ratio —
+  fine for a deliberately-square avatar, wrong for a lab photo where the top/bottom (equipment,
+  signage, people) is exactly the content that matters. Switched to `object-contain` with a
+  neutral `bg-brand-ink/5` fill so the whole image is always visible (letterboxed instead of
+  cropped). Left the one true icon-sized thumbnail (`/admin/categories`' 32px list photo) as
+  `object-cover` — cropping a 32px reference icon is normal and not what was reported as broken.
+- **2026-08-11 — Admin panel's nav sidebar was `hidden sm:flex` with no mobile equivalent —
+  fixed with a separate mobile nav component, not a responsive rework of the sidebar itself.**
+  Below the `sm` (640px) breakpoint the `<aside>` simply didn't render, so there was no way to
+  navigate between admin screens on a real phone without the browser's "desktop mode" faking a
+  wider viewport. Added `components/admin/AdminMobileNav.tsx`, a client component with its own
+  open/closed state, sitting above the existing desktop sidebar (`sm:hidden` vs. `hidden sm:flex`
+  — mutually exclusive, so exactly one renders at a time). Table lists already scroll
+  horizontally and forms already stack on mobile (both pre-existing, mobile-first Tailwind
+  defaults) — the sidebar was the one genuine blocker.
+- **2026-08-11 — The "you'll get an SMS confirmation" line was removed from the booking success
+  message, not stubbed or feature-flagged.** No SMS gateway is wired up (`docs/todo.md`
+  Housekeeping), so the message was simply false — every booking promised a text that would never
+  arrive. This is client-scoped work (per the client, "these kind of things is in the hand of the
+  client, he will tell us when to add the sms thing") — replaced with "our team will contact you
+  shortly" (EN + HI), which is true regardless of SMS. Add the SMS line back only once the
+  gateway actually exists.
+- **2026-08-11 — `www.pokaranlab.vercel.app` cert warning is the same known issue as the
+  2026-08-09 entry below, not a new bug.** Reported again via a screenshot showing
+  `NET::ERR_CERT_COMMON_NAME_INVALID` instead of the earlier "connection reset" symptom — both
+  are downstream of the same root cause (no project is bound to that exact `www.`-prefixed host;
+  Vercel's wildcard cert just makes the TLS handshake *start* successfully before the request
+  fails). No code fix exists or is needed pre-`pokaranlab.com`; don't link/bookmark the `www.`
+  variant of the `.vercel.app` URL anywhere.
 - **2026-08-09 — `revalidatePath` was verified with a temporary, throwaway debug route, not
   guesswork.** The open question ("does the public site actually update after an admin edit,
   and how fast") couldn't be answered by code review alone, and driving a real browser through

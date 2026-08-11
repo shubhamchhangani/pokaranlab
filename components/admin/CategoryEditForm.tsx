@@ -46,7 +46,7 @@ export function CategoryEditForm({
           <img
             src={category.default_image_url}
             alt=""
-            className="mb-2 h-24 w-24 rounded-lg border border-brand-ink/10 object-cover"
+            className="mb-2 h-24 w-24 rounded-lg border border-brand-ink/10 bg-brand-ink/5 object-contain"
           />
         )}
         <input

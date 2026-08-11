@@ -20,7 +20,7 @@ export function HeroCarousel({
   }, [images.length]);
 
   return (
-    <div className="relative mx-auto mt-10 h-56 w-full max-w-3xl overflow-hidden rounded-2xl sm:h-72">
+    <div className="relative mx-auto mt-10 h-56 w-full max-w-3xl overflow-hidden rounded-2xl bg-brand-ink/5 sm:h-72">
       {images.map((image, i) => {
         const caption = locale === "hi" ? image.caption_hi : image.caption_en;
         return (
@@ -28,7 +28,7 @@ export function HeroCarousel({
             key={image.id}
             className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`}
           >
-            <Image src={image.url} alt={caption ?? ""} fill className="object-cover" priority={i === 0} />
+            <Image src={image.url} alt={caption ?? ""} fill className="object-contain" priority={i === 0} />
             {caption && (
               <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3 text-sm text-white">
                 {caption}

@@ -94,8 +94,18 @@ current rather than exhaustive; it's meant to be read at the start of a session,
       results table (add from catalog with auto-filled normal range + auto High/Low flag, or a
       free-form custom row), draft/final status.
 - [x] `tests.normal_range_template` shape decided: `{type:"numeric",low,high,unit} |
-      {type:"text",display} | null` (`lib/types/normal-range.ts`) — editable from the test form,
-      read by report entry for auto-fill/flagging.
+      {type:"text",display} | {type:"panel",parameters} | null` (`lib/types/normal-range.ts`) —
+      editable from the test form, read by report entry for auto-fill/flagging.
+- [x] Multi-parameter test panels (CBC, Diabetes Profile, Malaria, Urine Routine, Lipid Profile,
+      LFT, KFT, Thyroid Profile) — the `panel` template variant holds a list of named
+      parameters, each its own numeric range or text default. `lib/data/report-presets.ts` ships
+      8 starting presets selectable from `TestForm`'s "Load preset" dropdown; loading one fills
+      the panel editor, which stays fully editable/addable/removable before saving — nothing
+      writes to the DB until the admin explicitly saves. Values are general adult reference
+      ranges (the kind printed on typical small-lab report formats), explicitly labeled in the UI
+      as a starting point to verify against this lab's actual equipment, not calibrated data.
+      `ReportForm`'s "Add from catalog" expands a panel test into one result row per parameter
+      instead of one flat row, reusing the same numeric High/Low auto-flag logic per row.
 - [x] PDF generation matching the letterhead (system-design.md §8) —
       `lib/pdf/{ReportDocument,generateReportPdf}.tsx`, uploaded to the private `reports` bucket
       on every save that has results (draft or final, so staff can preview before finalizing).
@@ -172,5 +182,25 @@ current rather than exhaustive; it's meant to be read at the start of a session,
 ## Housekeeping (no phase)
 
 - [ ] SMS gateway integration (Msg91/Fast2SMS) — booking confirmation and report-ready SMS are
-      both unimplemented; `SMS_API_KEY` exists in `.env.example` but nothing reads it yet
+      both unimplemented; `SMS_API_KEY` exists in `.env.example` but nothing reads it yet. The
+      booking success message no longer promises an SMS that doesn't exist (2026-08-11, see
+      `docs/decisions-log.md`) — this is client-scoped work, add it back when the client says to.
 - [ ] Run `npm run lint` and `npm run build` in CI (no CI configured yet)
+- [x] Admin panel usable on a real mobile viewport without "desktop mode" — the nav sidebar was
+      `hidden sm:flex` with no mobile fallback at all (simply didn't render below 640px). Added
+      `components/admin/AdminMobileNav.tsx` (hamburger + slide-down menu, `sm:hidden`, sits above
+      the existing desktop `<aside>`).
+- [x] Fixed image cropping — hero carousel, primary test/package images, and photo galleries all
+      used a fixed-height `object-cover` box, cropping the top/bottom off any photo that wasn't
+      close to the box's aspect ratio. Switched to `object-contain` on a neutral background
+      (letterboxed, nothing cropped) across `HeroCarousel`, `CardImage`, `PhotoGallery`,
+      `MediaGalleryForm`, and the admin upload previews. Left the 32px category-list icon as
+      `object-cover` — a true thumbnail, not primary content.
+- [x] Pagination + search added to `/admin/bookings` and `/admin/reports` — both were `.limit(50)`
+      with no way to reach anything past the 50th row, a real problem once bookings/reports run
+      into the hundreds. Page-based (`?page=`), fetches one extra row to detect a next page
+      instead of `COUNT(*)` (avoids scanning the whole matching set on every list load). New
+      indexes: `bookings_status_idx`, `reports_created_at_idx`, `reports_patient_name_idx`,
+      `reports_patient_phone_idx`.
+- [x] Non-prominent "Staff Login" link in the public site footer (`components/layout/Footer.tsx`)
+      → `/admin/login`, low-contrast styling since it's not meant for patients to notice.
