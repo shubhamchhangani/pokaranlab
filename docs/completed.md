@@ -40,9 +40,9 @@ Eight client-reported items in one pass:
   shortly" with no SMS gateway wired up. Replaced with "our team will contact you shortly" (EN +
   HI); SMS integration stays explicitly client-scoped, see `docs/todo.md` Housekeeping.
 
-Full reasoning for each in `docs/decisions-log.md` (2026-08-11 entries). Schema changes (new
-indexes) need `supabase/schema.sql`'s new statements applied to the live DB manually — see that
-file's diff, `supabase/README.md` has the `psql` command.
+Full reasoning for each in `docs/decisions-log.md` (2026-08-11 entries). The 4 new indexes were
+applied to the live DB via the Supabase SQL Editor (2026-08-11) — `schema.sql` and the live
+schema are in sync again.
 
 ## 2026-08-09 — Google Search Console live, photo galleries, category images
 
